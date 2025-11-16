@@ -7,7 +7,6 @@
     "pnpm": ">=10"
   },
   "type": "module",
-  "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
