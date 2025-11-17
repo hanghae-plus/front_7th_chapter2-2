@@ -9,15 +9,29 @@ import { Fragment, TEXT_ELEMENT } from "./constants";
  */
 export const normalizeNode = (node: VNode): VNode | null => {
   // 여기를 구현하세요.
-  return null;
+  if (node === null || node === undefined || typeof node === "boolean") {
+    return null;
+  }
+
+  if (typeof node === "string" || typeof node === "number") {
+    return createTextElement(node);
+  }
+
+  return node;
 };
 
 /**
  * 텍스트 노드를 위한 VNode를 생성합니다.
  */
 const createTextElement = (node: VNode): VNode => {
-  // 여기를 구현하세요.
-  return {} as VNode;
+  return {
+    type: TEXT_ELEMENT,
+    key: null,
+    props: {
+      children: [],
+      nodeValue: String(node),
+    },
+  };
 };
 
 /**
@@ -29,7 +43,22 @@ export const createElement = (
   originProps?: Record<string, any> | null,
   ...rawChildren: any[]
 ) => {
-  // 여기를 구현하세요.
+  const { key, ...props } = originProps ?? {};
+
+  // children 처리
+  const children = rawChildren
+    .flat(Infinity)
+    .map((child) => normalizeNode(child))
+    .filter((child): child is VNode => child !== null);
+
+  return {
+    type,
+    key: key ?? null,
+    props: {
+      ...props,
+      children: children.length > 0 ? children : undefined,
+    },
+  };
 };
 
 /**
