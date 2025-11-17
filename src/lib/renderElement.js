@@ -4,7 +4,30 @@ import { normalizeVNode } from "./normalizeVNode";
 import { updateElement } from "./updateElement";
 
 export function renderElement(vNode, container) {
+  console.log("[renderElement] 렌더링 시작");
+
+  // normalizeVNode를 해서
+  // 함수 컴포넌트 → 실제 HTML 요소로 변환
+  // null/undefined → ""로 변환
+  const normalizedVNode = normalizeVNode(vNode);
+  const oldVNode = container._vNode;
+
   // 최초 렌더링시에는 createElement로 DOM을 생성하고
-  // 이후에는 updateElement로 기존 DOM을 업데이트한다.
-  // 렌더링이 완료되면 container에 이벤트를 등록한다.
+  if (!oldVNode) {
+    console.log("[renderElement] 최초 렌더링");
+    // 최초 렌더링
+    container.appendChild(createElement(normalizedVNode));
+    // 최초 렌더링 시에만 이벤트 등록!
+    setupEventListeners(container);
+  } else {
+    console.log("[renderElement] 재렌더링");
+    // 재렌더링
+    updateElement(container, normalizedVNode, oldVNode);
+    // 재렌더링 시에는 이벤트 등록 안 함!
+  }
+
+  // 다음 렌더링 때 비교 하기 위해 저장
+  container._vNode = normalizedVNode;
+
+  console.log("[renderElement] 렌더링 완료");
 }
