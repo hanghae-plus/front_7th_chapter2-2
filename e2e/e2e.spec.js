@@ -11,7 +11,10 @@ class E2EHelpers {
 
   // 페이지 로딩 대기
   async waitForPageLoad() {
-    await this.page.waitForSelector('[data-testid="products-grid"], #products-grid', { timeout: 10000 });
+    await this.page.waitForSelector(
+      '[data-testid="products-grid"], #products-grid',
+      { timeout: 10000 },
+    );
     await this.page.waitForFunction(() => {
       const text = document.body.textContent;
       return text.includes("총") && text.includes("개");
@@ -53,7 +56,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
   });
 
   test.describe("1. 애플리케이션 초기화 및 기본 기능", () => {
-    test("페이지 접속 시 로딩 상태가 표시되고 상품 목록이 정상적으로 로드된다", async ({ page }) => {
+    test("페이지 접속 시 로딩 상태가 표시되고 상품 목록이 정상적으로 로드된다", async ({
+      page,
+    }) => {
       const helpers = new E2EHelpers(page);
 
       // 로딩 상태 확인
@@ -83,7 +88,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await expect(firstProductCard.locator("img")).toBeVisible();
 
       // 상품명 확인
-      await expect(firstProductCard).toContainText(/pvc 투명 젤리 쇼핑백|고양이 난간 안전망/i);
+      await expect(firstProductCard).toContainText(
+        /pvc 투명 젤리 쇼핑백|고양이 난간 안전망/i,
+      );
 
       // 가격 정보 확인 (숫자 + 원)
       await expect(firstProductCard).toContainText(/\d{1,3}(,\d{3})*원/);
@@ -94,7 +101,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
   });
 
   test.describe("2. 검색 및 필터링 기능", () => {
-    test("검색어 입력 후 Enter 키로 검색하고 URL이 업데이트된다", async ({ page }) => {
+    test("검색어 입력 후 Enter 키로 검색하고 URL이 업데이트된다", async ({
+      page,
+    }) => {
       const helpers = new E2EHelpers(page);
       await helpers.waitForPageLoad();
 
@@ -116,7 +125,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await page.press("#search-input", "Enter");
 
       // URL 업데이트 확인
-      await expect(page).toHaveURL(/search=%EC%95%84%EC%9D%B4%ED%8C%A8%EB%93%9C/);
+      await expect(page).toHaveURL(
+        /search=%EC%95%84%EC%9D%B4%ED%8C%A8%EB%93%9C/,
+      );
 
       // 검색 결과 확인
       await expect(page.locator("text=21개")).toBeVisible();
@@ -127,27 +138,37 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await expect(page.locator("text=21개")).toBeVisible();
     });
 
-    test("카테고리 선택 후 브레드크럼과 URL이 업데이트된다", async ({ page }) => {
+    test("카테고리 선택 후 브레드크럼과 URL이 업데이트된다", async ({
+      page,
+    }) => {
       const helpers = new E2EHelpers(page);
       await helpers.waitForPageLoad();
 
       // 1차 카테고리 선택
       await page.click("text=생활/건강");
 
-      await expect(page).toHaveURL(/category1=%EC%83%9D%ED%99%9C%2F%EA%B1%B4%EA%B0%95/);
+      await expect(page).toHaveURL(
+        /category1=%EC%83%9D%ED%99%9C%2F%EA%B1%B4%EA%B0%95/,
+      );
       await expect(page.locator("text=300개")).toBeVisible();
 
       // 브레드크럼 확인
-      await expect(page.locator("text=카테고리:").locator("..")).toContainText("생활/건강");
+      await expect(page.locator("text=카테고리:").locator("..")).toContainText(
+        "생활/건강",
+      );
 
       // 2차 카테고리 선택
       await page.click("text=자동차용품");
 
-      await expect(page).toHaveURL(/category2=%EC%9E%90%EB%8F%99%EC%B0%A8%EC%9A%A9%ED%92%88/);
+      await expect(page).toHaveURL(
+        /category2=%EC%9E%90%EB%8F%99%EC%B0%A8%EC%9A%A9%ED%92%88/,
+      );
       await expect(page.locator("text=11개")).toBeVisible();
 
       // 브레드크럼에 2차 카테고리도 표시되는지 확인
-      await expect(page.locator("text=카테고리:").locator("..")).toContainText("자동차용품");
+      await expect(page.locator("text=카테고리:").locator("..")).toContainText(
+        "자동차용품",
+      );
       await expect(page.locator("text=11개")).toBeVisible();
 
       await page.reload();
@@ -155,28 +176,38 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await expect(page.locator("text=11개")).toBeVisible();
     });
 
-    test("브레드크럼 클릭으로 상위 카테고리로 이동할 수 있다", async ({ page }) => {
+    test("브레드크럼 클릭으로 상위 카테고리로 이동할 수 있다", async ({
+      page,
+    }) => {
       const helpers = new E2EHelpers(page);
 
       // 2차 카테고리 상태에서 시작
-      await helpers.push("/?current=1&category1=생활%2F건강&category2=자동차용품&search=차량용");
+      await helpers.push(
+        "/?current=1&category1=생활%2F건강&category2=자동차용품&search=차량용",
+      );
       await helpers.waitForPageLoad();
       await expect(page.locator("text=9개")).toBeVisible();
 
       // 1차 카테고리 브레드크럼 클릭
       await page.click("text=생활/건강");
 
-      await expect(page).toHaveURL(/category1=%EC%83%9D%ED%99%9C%2F%EA%B1%B4%EA%B0%95/);
+      await expect(page).toHaveURL(
+        /category1=%EC%83%9D%ED%99%9C%2F%EA%B1%B4%EA%B0%95/,
+      );
       await expect(page).not.toHaveURL(/category2/);
       await expect(page.locator("text=12개")).toBeVisible();
 
       // 전체 브레드크럼 클릭
       await page.click("text=전체");
-      await expect(page.locator("text=카테고리:전체생활/건강디지털/가전")).toBeVisible();
+      await expect(
+        page.locator("text=카테고리:전체생활/건강디지털/가전"),
+      ).toBeVisible();
 
       await page.reload();
       await helpers.waitForPageLoad();
-      await expect(page.locator("text=카테고리:전체생활/건강디지털/가전")).toBeVisible();
+      await expect(
+        page.locator("text=카테고리:전체생활/건강디지털/가전"),
+      ).toBeVisible();
 
       await page.fill("#search-input", "");
       await page.press("#search-input", "Enter");
@@ -284,10 +315,14 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       const helpers = new E2EHelpers(page);
 
       // 복잡한 쿼리 파라미터로 직접 접근
-      await helpers.push("/?search=젤리&category1=생활%2F건강&sort=price_desc&limit=10");
+      await helpers.push(
+        "/?search=젤리&category1=생활%2F건강&sort=price_desc&limit=10",
+      );
       await helpers.waitForPageLoad();
 
-      await expect(page.locator("text=카테고리:").locator("..")).toContainText("생활/건강");
+      await expect(page.locator("text=카테고리:").locator("..")).toContainText(
+        "생활/건강",
+      );
       await expect(page.locator("#search-input")).toHaveValue("젤리");
       await expect(page.locator("#sort-select")).toHaveValue("price_desc");
       await expect(page.locator("#limit-select")).toHaveValue("10");
@@ -295,7 +330,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await expect(page.locator("text=3개")).toBeVisible();
     });
 
-    test("장바구니 내용이 localStorage에 저장되고 복원된다", async ({ page }) => {
+    test("장바구니 내용이 localStorage에 저장되고 복원된다", async ({
+      page,
+    }) => {
       const helpers = new E2EHelpers(page);
       await helpers.waitForPageLoad();
 
@@ -306,7 +343,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await expect(page.locator("#cart-icon-btn span")).toBeVisible();
 
       // localStorage에 저장되었는지 확인
-      const cartData = await page.evaluate(() => localStorage.getItem("shopping_cart"));
+      const cartData = await page.evaluate(() =>
+        localStorage.getItem("shopping_cart"),
+      );
       expect(cartData).toBeTruthy();
 
       // 페이지 새로고침
@@ -360,7 +399,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
 
       // h1 태그에 상품명 확인
       await expect(
-        page.locator('h1:text("PVC 투명 젤리 쇼핑백 1호 와인 답례품 구디백 비닐 손잡이 미니 간식 선물포장")'),
+        page.locator(
+          'h1:text("PVC 투명 젤리 쇼핑백 1호 와인 답례품 구디백 비닐 손잡이 미니 간식 선물포장")',
+        ),
       ).toBeVisible();
 
       // 수량 조절 후 장바구니 담기
@@ -368,7 +409,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await expect(page.locator("#quantity-input")).toHaveValue("2");
 
       await page.click("#add-to-cart-btn");
-      await expect(page.locator("text=장바구니에 추가되었습니다")).toBeVisible();
+      await expect(
+        page.locator("text=장바구니에 추가되었습니다"),
+      ).toBeVisible();
 
       // 관련 상품 섹션 확인
       await expect(page.locator("text=관련 상품")).toBeVisible();
@@ -384,7 +427,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await expect(page).toHaveURL(/\/product\/\d+/);
       await expect(page.url()).not.toBe(currentUrl);
       await expect(
-        page.locator('h1:text("샷시 풍지판 창문 바람막이 베란다 문 틈막이 창틀 벌레 차단 샤시 방충망 틈새막이")'),
+        page.locator(
+          'h1:text("샷시 풍지판 창문 바람막이 베란다 문 틈막이 창틀 벌레 차단 샤시 방충망 틈새막이")',
+        ),
       ).toBeVisible();
 
       await expect(await page.evaluate(() => window.loadFlag)).toBe(true);
@@ -392,7 +437,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await page.reload();
 
       await expect(
-        page.locator('h1:text("샷시 풍지판 창문 바람막이 베란다 문 틈막이 창틀 벌레 차단 샤시 방충망 틈새막이")'),
+        page.locator(
+          'h1:text("샷시 풍지판 창문 바람막이 베란다 문 틈막이 창틀 벌레 차단 샤시 방충망 틈새막이")',
+        ),
       ).toBeVisible();
 
       await expect(await page.evaluate(() => window.loadFlag)).toBe(undefined);
@@ -400,7 +447,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
   });
 
   test.describe("5. 장바구니 완전한 워크플로우", () => {
-    test("여러 상품 추가, 수량 조절, 선택 삭제 전체 시나리오", async ({ page }) => {
+    test("여러 상품 추가, 수량 조절, 선택 삭제 전체 시나리오", async ({
+      page,
+    }) => {
       const helpers = new E2EHelpers(page);
       await helpers.waitForPageLoad();
 
@@ -417,7 +466,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await helpers.openCartModal();
 
       // 두 상품이 모두 있는지 확인
-      await expect(page.locator(".cart-modal")).toContainText("PVC 투명 젤리 쇼핑백");
+      await expect(page.locator(".cart-modal")).toContainText(
+        "PVC 투명 젤리 쇼핑백",
+      );
       await expect(page.locator(".cart-modal")).toContainText("샷시 풍지판");
 
       // 첫 번째 상품 수량 증가
@@ -437,7 +488,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await page.click("#cart-modal-remove-selected-btn");
 
       // 첫 번째 상품만 삭제되고 두 번째 상품은 남아있는지 확인
-      await expect(page.locator(".cart-modal")).not.toContainText("PVC 투명 젤리 쇼핑백");
+      await expect(page.locator(".cart-modal")).not.toContainText(
+        "PVC 투명 젤리 쇼핑백",
+      );
       await expect(page.locator(".cart-modal")).toContainText("샷시 풍지판");
 
       // 장바구니 아이콘 개수 업데이트 확인 (1개)
@@ -533,7 +586,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await expect(page.locator(".cart-modal-overlay")).toBeVisible();
 
       // 배경 클릭으로 닫기 (모달 내용이 아닌 오버레이 영역 클릭)
-      await page.locator(".cart-modal-overlay").click({ position: { x: 10, y: 10 } });
+      await page
+        .locator(".cart-modal-overlay")
+        .click({ position: { x: 10, y: 10 } });
       await expect(page.locator(".cart-modal-overlay")).not.toBeVisible();
     });
 
@@ -545,22 +600,30 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
       await helpers.addProductToCart("PVC 투명 젤리 쇼핑백");
 
       // 토스트 메시지 표시 확인
-      await expect(page.locator("text=장바구니에 추가되었습니다")).toBeVisible();
+      await expect(
+        page.locator("text=장바구니에 추가되었습니다"),
+      ).toBeVisible();
 
       // 닫기 버튼이 있다면 클릭해서 수동으로 닫기 테스트
       const closeButton = page.locator(".toast-close-btn");
       if (await closeButton.isVisible()) {
         await closeButton.click();
-        await expect(page.locator("text=장바구니에 추가되었습니다")).not.toBeVisible();
+        await expect(
+          page.locator("text=장바구니에 추가되었습니다"),
+        ).not.toBeVisible();
       } else {
         // 자동으로 사라지는지 확인
-        await expect(page.locator("text=장바구니에 추가되었습니다")).not.toBeVisible({ timeout: 4000 });
+        await expect(
+          page.locator("text=장바구니에 추가되었습니다"),
+        ).not.toBeVisible({ timeout: 4000 });
       }
     });
   });
 
   test.describe("8. SPA 네비게이션", () => {
-    test("브라우저 뒤로가기/앞으로가기가 올바르게 작동한다", async ({ page }) => {
+    test("브라우저 뒤로가기/앞으로가기가 올바르게 작동한다", async ({
+      page,
+    }) => {
       const helpers = new E2EHelpers(page);
       await page.evaluate(() => {
         window.loadFlag = true;
@@ -575,7 +638,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
 
       await expect(page).toHaveURL("/product/85067212996");
       await expect(
-        page.locator('h1:text("PVC 투명 젤리 쇼핑백 1호 와인 답례품 구디백 비닐 손잡이 미니 간식 선물포장")'),
+        page.locator(
+          'h1:text("PVC 투명 젤리 쇼핑백 1호 와인 답례품 구디백 비닐 손잡이 미니 간식 선물포장")',
+        ),
       ).toBeVisible();
       await expect(page.locator("text=관련 상품")).toBeVisible();
       const relatedProducts = page.locator(".related-product-card");
@@ -583,21 +648,27 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
 
       await expect(page).toHaveURL("/product/86940857379");
       await expect(
-        page.locator('h1:text("샷시 풍지판 창문 바람막이 베란다 문 틈막이 창틀 벌레 차단 샤시 방충망 틈새막이")'),
+        page.locator(
+          'h1:text("샷시 풍지판 창문 바람막이 베란다 문 틈막이 창틀 벌레 차단 샤시 방충망 틈새막이")',
+        ),
       ).toBeVisible();
 
       // 브라우저 뒤로가기
       await page.goBack();
       await expect(page).toHaveURL("/product/85067212996");
       await expect(
-        page.locator('h1:text("PVC 투명 젤리 쇼핑백 1호 와인 답례품 구디백 비닐 손잡이 미니 간식 선물포장")'),
+        page.locator(
+          'h1:text("PVC 투명 젤리 쇼핑백 1호 와인 답례품 구디백 비닐 손잡이 미니 간식 선물포장")',
+        ),
       ).toBeVisible();
 
       // 브라우저 앞으로가기
       await page.goForward();
       await expect(page).toHaveURL("/product/86940857379");
       await expect(
-        page.locator('h1:text("샷시 풍지판 창문 바람막이 베란다 문 틈막이 창틀 벌레 차단 샤시 방충망 틈새막이")'),
+        page.locator(
+          'h1:text("샷시 풍지판 창문 바람막이 베란다 문 틈막이 창틀 벌레 차단 샤시 방충망 틈새막이")',
+        ),
       ).toBeVisible();
 
       await page.goBack();
@@ -617,7 +688,9 @@ test.describe("E2E: 쇼핑몰 전체 사용자 시나리오", () => {
     });
 
     // 404 페이지 테스트
-    test("존재하지 않는 페이지 접근 시 404 페이지가 표시된다", async ({ page }) => {
+    test("존재하지 않는 페이지 접근 시 404 페이지가 표시된다", async ({
+      page,
+    }) => {
       // 존재하지 않는 경로로 이동
       await page.goto("/non-existent-page");
 
