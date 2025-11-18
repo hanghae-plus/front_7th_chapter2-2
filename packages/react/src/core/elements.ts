@@ -52,11 +52,11 @@ export const createElement = (
     };
   }
 
-  const { key, ...props } = originProps ?? {};
+  const { key: maybeKey, ...props } = originProps ?? {};
 
   return {
     type,
-    key,
+    key: maybeKey ?? null,
     props: {
       ...props,
       children,
