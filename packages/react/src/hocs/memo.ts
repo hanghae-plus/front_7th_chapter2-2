@@ -1,5 +1,5 @@
-import { useRef } from "../hooks";
 import { type FunctionComponent, type VNode } from "../core";
+import { useRef } from "../hooks";
 import { shallowEquals } from "../utils";
 
 /**
@@ -12,10 +12,19 @@ import { shallowEquals } from "../utils";
  */
 export function memo<P extends object>(Component: FunctionComponent<P>, equals = shallowEquals) {
   const MemoizedComponent: FunctionComponent<P> = (props) => {
-    // 여기를 구현하세요.
     // useRef를 사용하여 이전 props와 렌더링 결과를 저장해야 합니다.
+    const ref = useRef<{ prevProps: P | null; result: VNode | null }>({ prevProps: null, result: null });
+
     // equals 함수로 이전 props와 현재 props를 비교하여 렌더링 여부를 결정합니다.
-    return Component(props);
+    if (!ref.current.prevProps || !equals(ref.current.prevProps, props)) {
+      ref.current.result = Component(props);
+    }
+
+    // 이전 props를 항상 현재 props로 업데이트합니다.
+    ref.current.prevProps = props;
+
+    // props가 동일하면 이전 렌더링 결과를 재사용합니다.
+    return ref.current.result;
   };
 
   MemoizedComponent.displayName = `Memo(${Component.displayName || Component.name})`;
