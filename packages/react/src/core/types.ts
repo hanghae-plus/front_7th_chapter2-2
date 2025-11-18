@@ -68,6 +68,7 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace React {
     interface ComponentType<P extends Props = Props> {
+      displayName: string;
       (props: P): VNode | null;
     }
   }

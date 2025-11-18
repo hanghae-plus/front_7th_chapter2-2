@@ -5,7 +5,12 @@ import type { AnyFunction } from "../types";
  * 브라우저의 `queueMicrotask` 또는 `Promise.resolve().then()`을 사용합니다.
  */
 export const enqueue = (callback: () => void) => {
-  // 여기를 구현하세요.
+  // 브라우저 아닌 환경 대응
+  if (typeof queueMicrotask !== "undefined") {
+    queueMicrotask(callback);
+  } else {
+    Promise.resolve().then(callback);
+  }
 };
 
 /**
@@ -13,7 +18,14 @@ export const enqueue = (callback: () => void) => {
  * 렌더링이나 이펙트 실행과 같은 작업의 중복을 방지하는 데 사용됩니다.
  */
 export const withEnqueue = (fn: AnyFunction) => {
-  // 여기를 구현하세요.
   // scheduled 플래그를 사용하여 fn이 한 번만 예약되도록 구현합니다.
-  return () => {};
+  let scheduled = false;
+  return () => {
+    if (scheduled) return;
+    scheduled = true;
+    enqueue(() => {
+      scheduled = false;
+      fn();
+    });
+  };
 };

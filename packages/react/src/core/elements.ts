@@ -8,16 +8,32 @@ import { Fragment, TEXT_ELEMENT } from "./constants";
  * null, undefined, boolean, 배열, 원시 타입 등을 처리하여 일관된 VNode 구조를 보장합니다.
  */
 export const normalizeNode = (node: VNode): VNode | null => {
-  // 여기를 구현하세요.
-  return null;
+  // null / undefined / boolean은 렌더링하지 않음
+  if (isEmptyValue(node)) {
+    return null;
+  }
+
+  // 문자열이나 숫자는 텍스트 노드로 변환
+  if (typeof node === "string" || typeof node === "number") {
+    return createTextElement(node);
+  }
+
+  // 이미 VNode 형식인 경우 그대로 반환
+  return node;
 };
 
 /**
  * 텍스트 노드를 위한 VNode를 생성합니다.
  */
-const createTextElement = (node: VNode): VNode => {
-  // 여기를 구현하세요.
-  return {} as VNode;
+const createTextElement = (node: string | number): VNode => {
+  return {
+    type: TEXT_ELEMENT,
+    key: null,
+    props: {
+      children: [],
+      nodeValue: String(node),
+    },
+  };
 };
 
 /**
@@ -29,7 +45,25 @@ export const createElement = (
   originProps?: Record<string, any> | null,
   ...rawChildren: any[]
 ) => {
-  // 여기를 구현하세요.
+  const { key = null, ...props } = originProps ?? {};
+
+  const flattenChildren = (children: any[]): any[] =>
+    children.flatMap((child) => (Array.isArray(child) ? flattenChildren(child) : child));
+
+  const flatChildren = flattenChildren(rawChildren);
+  const normalizedChildren = flatChildren.map(normalizeNode).filter((child): child is VNode => child !== null);
+
+  const finalProps = { ...props };
+
+  if (normalizedChildren.length > 0) {
+    finalProps.children = normalizedChildren;
+  }
+
+  return {
+    type,
+    key,
+    props: finalProps,
+  };
 };
 
 /**
@@ -43,6 +77,20 @@ export const createChildPath = (
   nodeType?: string | symbol | React.ComponentType,
   siblings?: VNode[],
 ): string => {
-  // 여기를 구현하세요.
-  return "";
+  // key가 있으면 key를 사용, 없으면 타입 기반 카운터 사용
+  if (key != null) {
+    return `${parentPath}.k${key}`;
+  }
+
+  // 타입이 함수(컴포넌트)인 경우 컴포넌트 이름 사용
+  if (typeof nodeType === "function") {
+    const componentName = nodeType.displayName || nodeType.name || "Component";
+    // 같은 타입의 형제들 중 몇 번째인지 계산
+    const sameTypeCount =
+      siblings?.slice(0, index).filter((sibling) => sibling.type === nodeType && sibling.key == null).length || 0;
+    return `${parentPath}.c${componentName}_${sameTypeCount}`;
+  }
+
+  // 일반적인 경우 인덱스 사용
+  return `${parentPath}.i${index}`;
 };
