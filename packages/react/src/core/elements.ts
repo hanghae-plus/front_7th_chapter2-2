@@ -9,7 +9,23 @@ import { Fragment, TEXT_ELEMENT } from "./constants";
  */
 export const normalizeNode = (node: VNode): VNode | null => {
   // 여기를 구현하세요.
-  return null;
+
+  // null, undefined, boolean은 렌더링하지 않음
+  if (isEmptyValue(node)) {
+    return null;
+  }
+
+  // 배열인 경우 Fragment로 감싸기
+  if (Array.isArray(node)) {
+    return createElement(Fragment, null, ...node);
+  }
+
+  // 원시 타입(string, number 등)은 텍스트 노드로 변환
+  if (typeof node !== "object") {
+    return createTextElement(node);
+  }
+
+  return node;
 };
 
 /**
@@ -17,7 +33,15 @@ export const normalizeNode = (node: VNode): VNode | null => {
  */
 const createTextElement = (node: VNode): VNode => {
   // 여기를 구현하세요.
-  return {} as VNode;
+
+  return {
+    type: TEXT_ELEMENT,
+    key: null,
+    props: {
+      nodeValue: String(node),
+      children: [],
+    },
+  };
 };
 
 /**
@@ -28,8 +52,48 @@ export const createElement = (
   type: string | symbol | React.ComponentType<any>,
   originProps?: Record<string, any> | null,
   ...rawChildren: any[]
-) => {
+): VNode => {
   // 여기를 구현하세요.
+
+  const { key = null, ...props } = originProps || {};
+
+  // children을 평탄화하고 정규화
+  const flattenChildren = (children: any[]): VNode[] => {
+    const result: VNode[] = [];
+
+    for (const child of children) {
+      if (Array.isArray(child)) {
+        result.push(...flattenChildren(child));
+      } else {
+        const normalized = normalizeNode(child);
+        if (normalized !== null) {
+          result.push(normalized);
+        }
+      }
+    }
+
+    return result;
+  };
+
+  const children = flattenChildren(rawChildren);
+
+  // children이 있을 때만 props에 추가
+  if (children.length > 0) {
+    return {
+      type,
+      key: key != null ? key : null,
+      props: {
+        ...props,
+        children,
+      },
+    };
+  }
+
+  return {
+    type,
+    key: key != null ? key : null,
+    props,
+  };
 };
 
 /**
@@ -38,11 +102,41 @@ export const createElement = (
  */
 export const createChildPath = (
   parentPath: string,
-  key: string | null,
+  key: string | number | null,
   index: number,
   nodeType?: string | symbol | React.ComponentType,
   siblings?: VNode[],
 ): string => {
   // 여기를 구현하세요.
-  return "";
+
+  // key가 있으면 key 기반으로 경로 생성
+  if (key != null) {
+    return `${parentPath}/${key}`;
+  }
+
+  // key가 없으면 타입과 인덱스 기반으로 경로 생성
+  // 같은 타입의 형제들 중에서의 인덱스를 계산
+  if (siblings && nodeType) {
+    const sameTypeIndex = siblings.slice(0, index).filter((sibling) => sibling && sibling.type === nodeType).length;
+
+    let typeName: string;
+
+    switch (typeof nodeType) {
+      case "string":
+        typeName = nodeType;
+        break;
+      case "symbol":
+        typeName = nodeType.toString();
+        break;
+      case "function":
+        typeName = (nodeType as any).displayName || (nodeType as any).name || "component";
+        break;
+      default:
+        typeName = "component";
+    }
+
+    return `${parentPath}/${typeName}:${sameTypeIndex}`;
+  }
+
+  return `${parentPath}/${index}`;
 };

@@ -1,7 +1,7 @@
 import { context } from "./context";
 import { VNode } from "./types";
 import { removeInstance } from "./dom";
-import { cleanupUnusedHooks } from "./hooks";
+// import { cleanupUnusedHooks } from "./hooks";
 import { render } from "./render";
 
 /**
@@ -16,4 +16,30 @@ export const setup = (rootNode: VNode | null, container: HTMLElement): void => {
   // 2. 이전 렌더링 내용을 정리하고 컨테이너를 비웁니다.
   // 3. 루트 컨텍스트와 훅 컨텍스트를 리셋합니다.
   // 4. 첫 렌더링을 실행합니다.
+
+  // 1. 컨테이너 유효성 검사
+  if (!container) {
+    throw new Error("Container is required");
+  }
+
+  if (!rootNode) {
+    throw new Error("Root node is required");
+  }
+
+  // 2. 이전 렌더링 내용을 정리
+  if (context.root.instance) {
+    removeInstance(context.root.container!, context.root.instance);
+  }
+
+  // 3. 컨테이너 비우기
+  container.innerHTML = "";
+
+  // 4. 훅 컨텍스트 리셋
+  context.hooks.clear();
+
+  // 5. 루트 컨텍스트 리셋
+  context.root.reset({ container, node: rootNode });
+
+  // 6. 첫 렌더링 실행
+  render();
 };

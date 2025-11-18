@@ -1,6 +1,5 @@
 import { createStore } from "../lib";
 import { CART_ACTIONS } from "./actionTypes";
-import { cartStorage } from "../storage/index.js";
 
 /**
  * 장바구니 스토어 초기 상태
@@ -43,8 +42,7 @@ const findCartItem = (items, productId) => {
  * @param {CartState} state - 현재 상태
  * @param {CartAction} action - 액션 객체
  */
-const cartReducer = (_, action) => {
-  const state = cartStorage.get() ?? initialState;
+const cartReducer = (state, action) => {
   switch (action.type) {
     case CART_ACTIONS.ADD_ITEM: {
       const { product, quantity = 1 } = action.payload;
