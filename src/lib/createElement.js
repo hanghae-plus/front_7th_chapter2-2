@@ -25,15 +25,15 @@ export function createElement(vNode) {
     return fragment;
   }
 
-  // 4. 위의 경우가 아니면 실제 DOM 요소를 생성
+  // 4-1. vNode.type에 해당하는 요소를 생성
   const element = document.createElement(vNode.type);
 
-  // 4-1. 속성 적용
+  // 4-2.VNode.props의 속성들을 적용
   if (vNode.props) {
     updateAttributes(element, vNode.props);
   }
 
-  // 4-2. 자식 요소들 처리
+  // 4-3. VNode.children의 각 자식에 대해서 createElement를 재귀 호출하여 추가
   if (vNode.children && vNode.children.length > 0) {
     vNode.children.forEach((child) => {
       const childElement = createElement(child);
@@ -48,11 +48,12 @@ export function createElement(vNode) {
 }
 
 function updateAttributes($el, props) {
+  // prop가 없으면 아무것도 안하고 리턴
   if (!props || typeof props !== "object") {
     return;
   }
 
-  // 모든 props를 순회
+  // props의 모든 키를 하나씩 확인
   for (const key in props) {
     const value = props[key];
 
