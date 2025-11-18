@@ -3,15 +3,16 @@ import { createVNode } from "../lib";
 import { cartStore, uiStore, UI_ACTIONS } from "../stores";
 import { CartModal, Footer, PublicImage, Toast } from "../components";
 
-// 장바구니 모달 열기 핸들러
-const close = () => {
-  uiStore.dispatch({ type: UI_ACTIONS.OPEN_CART_MODAL });
-};
-
 export const PageWrapper = ({ headerLeft, children }) => {
   const cart = cartStore.getState();
   const { cartModal, toast } = uiStore.getState();
-  const cartSize = cart.items.length;
+  const cartSize = cart.items?.length || 0;
+
+  // 장바구니 모달 열기 핸들러
+  const openCartModal = () => {
+    console.log("🛒 Opening cart modal...");
+    uiStore.dispatch({ type: UI_ACTIONS.OPEN_CART_MODAL });
+  };
 
   const cartCount = (
     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -30,9 +31,13 @@ export const PageWrapper = ({ headerLeft, children }) => {
               <button
                 id="cart-icon-btn"
                 className="relative p-2 text-gray-700 hover:text-gray-900 transition-colors"
-                onClick={close}
+                onClick={openCartModal}
               >
-                <PublicImage src="/cart-header-icon.svg" alt="장바구니" className="w-6 h-6" />
+                <PublicImage
+                  src="/cart-header-icon.svg"
+                  alt="장바구니"
+                  className="w-6 h-6"
+                />
                 {cartSize > 0 && cartCount}
               </button>
             </div>
