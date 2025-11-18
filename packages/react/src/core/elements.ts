@@ -47,11 +47,10 @@ export const createElement = (
       type: Fragment,
       key: null,
       props: {
-        children,
+        children: children.length > 0 ? children : undefined,
       },
     };
   }
-
   const { key: maybeKey, ...props } = originProps ?? {};
 
   return {
@@ -59,7 +58,7 @@ export const createElement = (
     key: maybeKey ?? null,
     props: {
       ...props,
-      children,
+      children: children.length > 0 ? children : undefined,
     },
   } as VNode;
 };
