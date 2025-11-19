@@ -72,7 +72,10 @@ function updateAttributes($el, props) {
     // 3. boolean 타입 속성 처리 (checked, disabled, selected 등)
     if (typeof value === "boolean") {
       if (value) {
-        $el.setAttribute(key, "");
+        // checked와 selected는 property만 설정 (attribute는 설정하지 않음)
+        if (key !== "checked" && key !== "selected") {
+          $el.setAttribute(key, "");
+        }
         $el[key] = true; // property도 설정
       } else {
         $el.removeAttribute(key);
