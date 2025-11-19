@@ -3,9 +3,8 @@ const isRemovable = (child) =>
 
 const normalizeChildren = (children = []) =>
   children
-    .flat()
+    .flat(Infinity)
     .map((child) => normalizeVNode(child))
-    .flat()
     .filter((child) => !isRemovable(child));
 
 export function normalizeVNode(vNode) {
