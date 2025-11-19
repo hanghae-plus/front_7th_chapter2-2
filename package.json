@@ -30,6 +30,7 @@
       "eslint --fix"
     ]
   },
+  "homepage":"https://s1-1v.github.io/react",
   "devDependencies": {
     "@babel/core": "latest",
     "@babel/plugin-transform-react-jsx": "latest",

@@ -2,8 +2,7 @@ import { defineConfig as defineTestConfig, mergeConfig } from "vitest/config";
 import { defineConfig } from "vite";
 import { resolve } from "path";
 
-const base =
-  process.env.NODE_ENV === "production" ? "/front_7th_chapter2-2/" : "";
+const base = process.env.NODE_ENV === "production" ? "/react/" : "";
 
 export default mergeConfig(
   defineConfig({
