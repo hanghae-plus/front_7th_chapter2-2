@@ -23,14 +23,23 @@ export function normalizeVNode(vNode) {
   if (typeof vNode === "object" && vNode !== null) {
     // 4-1. 함수형 컴포넌트인 경우 (type이 함수)
     if (typeof vNode.type === "function") {
-      // 함수를 실행해서 결과를 정규화
-      const props = vNode.props || {};
-      const children = vNode.children || [];
-      const componentProps = { ...props, children };
-      const result = vNode.type(componentProps);
-      return normalizeVNode(result);
+      try {
+        // 함수를 실행해서 결과를 정규화
+        const props = vNode.props || {};
+        const children = vNode.children || [];
+        const componentProps = { ...props, children };
+        const result = vNode.type(componentProps);
+        return normalizeVNode(result);
+      } catch (error) {
+        // 컴포넌트 실행 중 에러 발생 시 에러 메시지 출력하고 빈 div 반환
+        console.error("컴포넌트 렌더링 에러:", error);
+        return {
+          type: "div",
+          props: null,
+          children: [],
+        };
+      }
     }
-
     // 4-2. 일반 vNode인 경우
     // children을 재귀적으로 정규화하고 falsy 값 제거
     const normalizedChildren = (vNode.children || [])

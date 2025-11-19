@@ -14,10 +14,15 @@ export const createStore = (reducer, initialState) => {
   const getState = () => state;
 
   const dispatch = (action) => {
-    const newState = reducer(state, action);
-    if (newState !== state) {
-      state = newState;
-      notify();
+    try {
+      const newState = reducer(state, action);
+      if (newState !== state) {
+        state = newState;
+        notify();
+      }
+    } catch (error) {
+      console.error("Reducer 실행 에러:", error);
+      // 에러 발생 시 state는 그대로 유지
     }
   };
 
