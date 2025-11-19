@@ -1,4 +1,4 @@
-import { addEvent } from "./eventManager";
+// import { addEvent } from "./eventManager";
 
 export function createElement(vNode) {
   if (vNode === null || vNode === undefined || typeof vNode === "boolean") {
@@ -17,10 +17,34 @@ export function createElement(vNode) {
   }
 
   const $el = document.createElement(vNode.type);
-  vNode.children.forEach((child) => {
-    $el.appendChild(createElement(child));
-  });
+
+  // props 처리
+  if (vNode.props) {
+    updateAttributes($el, vNode.props);
+  }
+
+  // children 처리
+  if (vNode.children && Array.isArray(vNode.children)) {
+    vNode.children.forEach((child) => {
+      $el.appendChild(createElement(child));
+    });
+  }
+
   return $el;
 }
 
-function updateAttributes($el, props) {}
+function updateAttributes($el, props) {
+  Object.keys(props).forEach((key) => {
+    if (key === "className") {
+      $el.className = props[key];
+    } else if (key.startsWith("data-")) {
+      $el.setAttribute(key, props[key]);
+    } else if (key === "disabled") {
+      $el.disabled = props[key];
+    } else if (key.startsWith("on")) {
+      // 이벤트 핸들러는 나중에 처리
+    } else {
+      $el.setAttribute(key, props[key]);
+    }
+  });
+}
