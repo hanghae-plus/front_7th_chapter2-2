@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Page Not Found</title>
+    <script>
+      // SPA 라우팅을 위한 리다이렉트
+      // GitHub Pages에서 존재하지 않는 경로 접근 시 404.html로 이동
+      // 이를 index.html로 리다이렉트하여 React Router가 처리하도록 함
+      (function() {
+        var redirect = sessionStorage.redirect;
+        delete sessionStorage.redirect;
+        if (redirect && redirect != location.href) {
+          history.replaceState(null, null, redirect);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- 리다이렉트 중이므로 body 내용은 보이지 않음 -->
+  </body>
+</html>
