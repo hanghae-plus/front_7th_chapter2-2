@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NodeType, NodeTypes } from "./constants";
 import { Instance } from "./types";
 
 /**
@@ -8,6 +7,25 @@ import { Instance } from "./types";
  */
 export const setDomProps = (dom: HTMLElement, props: Record<string, any>): void => {
   // 여기를 구현하세요.
+  Object.keys(props).forEach((key) => {
+    if (key === "children") return;
+
+    const attr = key === "className" ? "class" : key;
+    const value = props[key];
+
+    if (attr === "style") {
+      Object.entries(value).forEach(([styleKey, styleValue]) => {
+        (dom.style as any)[styleKey] = styleValue;
+      });
+    } else if (attr.startsWith("on") && typeof value === "function") {
+      const eventName = attr.toLowerCase().substring(2);
+      dom.addEventListener(eventName, value);
+    } else if (typeof value === "boolean") {
+      if (value) dom.setAttribute(key, "");
+    } else if (value !== null && value !== undefined) {
+      dom.setAttribute(attr, value);
+    }
+  });
 };
 
 /**
@@ -19,7 +37,36 @@ export const updateDomProps = (
   prevProps: Record<string, any> = {},
   nextProps: Record<string, any> = {},
 ): void => {
-  // 여기를 구현하세요.
+  // 삭제된 dom props 처리
+  Object.keys(prevProps).forEach((key) => {
+    if (!(key in nextProps)) {
+      const attr = key === "className" ? "class" : key;
+      if (attr.startsWith("on")) {
+        const eventName = attr.toLowerCase().substring(2);
+        dom.removeEventListener(eventName, prevProps[attr]);
+      } else {
+        dom.removeAttribute(attr);
+      }
+    }
+  });
+
+  Object.keys(nextProps).forEach((key) => {
+    if (key.startsWith("on")) {
+      const eventName = key.toLowerCase().substring(2);
+      if (prevProps[key]) dom.removeEventListener(eventName, prevProps[key]);
+      if (nextProps[key] && typeof nextProps[key] === "function") dom.addEventListener(eventName, nextProps[key]);
+    }
+  });
+
+  const changedProps = Object.entries(nextProps)
+    .filter(([nextKey, nextValue]) => {
+      if (nextKey.startsWith("on")) return false;
+      return !prevProps[nextKey] || prevProps[nextKey] !== nextValue;
+    })
+    .reduce((acc, [nextKey, nextValue]) => {
+      return { ...acc, [nextKey]: nextValue };
+    }, {});
+  setDomProps(dom, changedProps);
 };
 
 /**
@@ -28,7 +75,9 @@ export const updateDomProps = (
  */
 export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] => {
   // 여기를 구현하세요.
-  return [];
+  if (!instance) return [];
+  if (instance.dom) return [instance.dom];
+  return instance.children.flatMap(getDomNodes);
 };
 
 /**
@@ -36,6 +85,12 @@ export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] =
  */
 export const getFirstDom = (instance: Instance | null): HTMLElement | Text | null => {
   // 여기를 구현하세요.
+  if (!instance) return null;
+  if (instance.dom) return instance.dom;
+  for (const child of instance.children) {
+    const dom = getFirstDom(child);
+    if (dom) return dom;
+  }
   return null;
 };
 
@@ -44,6 +99,13 @@ export const getFirstDom = (instance: Instance | null): HTMLElement | Text | nul
  */
 export const getFirstDomFromChildren = (children: (Instance | null)[]): HTMLElement | Text | null => {
   // 여기를 구현하세요.
+  if (!children) {
+    return null;
+  }
+  for (const child of children) {
+    const dom = getFirstDom(child);
+    if (dom) return dom;
+  }
   return null;
 };
 
@@ -57,6 +119,13 @@ export const insertInstance = (
   anchor: HTMLElement | Text | null = null,
 ): void => {
   // 여기를 구현하세요.
+  const domNodes = getDomNodes(instance);
+  domNodes.forEach((dom) => {
+    // 이미 올바른 위치에 있으면 건너뜀
+    if (dom.parentNode === parentDom && dom.nextSibling === anchor) return;
+    if (anchor) parentDom.insertBefore(dom, anchor);
+    else parentDom.appendChild(dom);
+  });
 };
 
 /**
@@ -64,4 +133,9 @@ export const insertInstance = (
  */
 export const removeInstance = (parentDom: HTMLElement, instance: Instance | null): void => {
   // 여기를 구현하세요.
+  if (!instance) return;
+  const domNodes = getDomNodes(instance);
+  domNodes.forEach((dom) => {
+    if (dom.parentNode === parentDom) parentDom.removeChild(dom);
+  });
 };
