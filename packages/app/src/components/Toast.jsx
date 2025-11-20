@@ -12,7 +12,7 @@ const close = () => {
 
 export function Toast({ isVisible = false, message = "", type = "info" }) {
   if (!isVisible) {
-    return "";
+    return null;
   }
 
   const getIconAndColor = () => {

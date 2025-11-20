@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { productStore } from "../stores";
 import { loadProductDetailForPage } from "../services";
 import { router } from "../router";
@@ -9,7 +9,17 @@ import { ErrorContent, ProductDetail, PublicImage } from "../components";
  * 상품 상세 페이지 컴포넌트
  */
 export const ProductDetailPage = () => {
-  const { currentProduct: product, relatedProducts = [], error, loading } = productStore.getState();
+  const [productState, setProductState] = useState(productStore.getState());
+  const { currentProduct: product, relatedProducts = [], error, loading } = productState;
+
+  // productStore 구독
+  useEffect(() => {
+    const unsubscribe = productStore.subscribe(() => {
+      setProductState(productStore.getState());
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     loadProductDetailForPage(router.params.id);

@@ -41,7 +41,7 @@ export function CartModal({ items = [], selectedAll = false, isOpen = false }) {
   }, [handleEscKey]);
 
   if (!isOpen) {
-    return "";
+    return null;
   }
 
   // 선택된 아이템들

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { cartStore, UI_ACTIONS, uiStore } from "../stores";
 import { CartModal, Footer, PublicImage, Toast } from "../components";
 
@@ -8,9 +8,30 @@ const close = () => {
 };
 
 export const PageWrapper = ({ headerLeft, children }) => {
-  const cart = cartStore.getState();
-  const { cartModal, toast } = uiStore.getState();
+  // store 상태를 useState로 관리하여 변경 시 리렌더 트리거
+  const [cart, setCart] = useState(cartStore.getState());
+  const [uiState, setUiState] = useState(uiStore.getState());
+  const { cartModal, toast } = uiState;
   const cartSize = cart.items.length;
+
+  // store 변경 구독
+  useEffect(() => {
+    // cartStore 구독
+    const unsubscribeCart = cartStore.subscribe(() => {
+      setCart(cartStore.getState());
+    });
+
+    // uiStore 구독
+    const unsubscribeUI = uiStore.subscribe(() => {
+      setUiState(uiStore.getState());
+    });
+
+    // cleanup: 언마운트 시 구독 해제
+    return () => {
+      unsubscribeCart();
+      unsubscribeUI();
+    };
+  }, []);
 
   const cartCount = useMemo(
     () => (
