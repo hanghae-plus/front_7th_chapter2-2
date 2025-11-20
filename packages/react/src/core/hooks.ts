@@ -19,12 +19,35 @@ export const cleanupUnusedHooks = () => {
 export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((prev: T) => T)) => void] => {
   // 여기를 구현하세요.
   // 1. 현재 컴포넌트의 훅 커서와 상태 배열을 가져옵니다.
+  const currentPath = context.hooks.currentPath;
+  const currentCursor = context.hooks.currentCursor;
+  const currentHooks = context.hooks.currentHooks;
+
+  const isInitialRender = !context.hooks.visited.has(currentPath);
+
   // 2. 첫 렌더링이라면 초기값으로 상태를 설정합니다.
+  if (isInitialRender) {
+    const initialState = typeof initialValue == "function" ? initialValue() : initialValue;
+    context.hooks.state.set(currentPath, [...currentHooks, initialState]);
+    context.hooks.cursor.set(currentPath, currentHooks.length);
+    context.hooks.visited.add(currentPath);
+  }
   // 3. 상태 변경 함수(setter)를 생성합니다.
   //    - 새 값이 이전 값과 같으면(Object.is) 재렌더링을 건너뜁니다.
   //    - 값이 다르면 상태를 업데이트하고 재렌더링을 예약(enqueueRender)합니다.
+  const setState = (nextValue: T | ((prev: T) => T)) => {
+    const newState = typeof nextValue == "function" ? nextValue(currentHooks[currentCursor - 1]) : nextValue;
+    const oldState = currentHooks[currentCursor];
+    if (shallowEquals(newState, oldState)) return;
+    context.hooks.state.set(currentPath, [
+      ...currentHooks.slice(0, currentCursor),
+      newState,
+      ...currentHooks.slice(currentCursor + 1),
+    ]);
+    // context.hooks.cursor.set(currentPath, currentCursor + 1); // TODO: implement cursor set
+    enqueueRender(currentPath); // TODO: implement enqueueRender
+  };
   // 4. 훅 커서를 증가시키고 [상태, setter]를 반환합니다.
-  const setState = (nextValue: T | ((prev: T) => T)) => {};
   return [initialValue as T, setState];
 };
 
