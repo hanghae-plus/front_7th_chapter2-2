@@ -35,6 +35,9 @@ export default mergeConfig(
       environment: "jsdom",
       setupFiles: "./src/setupTests.js",
       exclude: ["**/e2e/**", "**/*.e2e.spec.js", "**/node_modules/**"],
+      build: {
+        outDir: "dist",
+      },
     },
   }),
 );
