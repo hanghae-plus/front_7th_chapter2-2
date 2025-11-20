@@ -9,7 +9,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && cp dist/index.html dist/404.html",
     "lint:fix": "eslint --fix",
     "prettier:write": "prettier --write ./src",
     "preview": "vite preview",
