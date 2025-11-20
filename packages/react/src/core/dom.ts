@@ -63,5 +63,19 @@ export const insertInstance = (
  * 부모 DOM에서 인스턴스에 해당하는 모든 DOM 노드를 제거합니다.
  */
 export const removeInstance = (parentDom: HTMLElement, instance: Instance | null): void => {
-  // 여기를 구현하세요.
+  if (!instance) {
+    parentDom.removeChild(parentDom.firstChild as Node);
+    return;
+  }
+
+  if (!instance.dom) return;
+
+  // Real DOM 제거
+  if (instance.dom.parentNode === parentDom) {
+    parentDom.removeChild(instance.dom);
+  }
+
+  // VDOM에서 real dom과 VNode 제거
+  instance.dom = null;
+  instance.children = [];
 };
