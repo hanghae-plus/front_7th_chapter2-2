@@ -190,8 +190,16 @@ export const createInstance = (node: VNode): Instance => {
       path: "",
     };
 
-    instance.children =
-      node.props.children?.map((child) => createInstance(child)).filter((child) => child !== null) ?? [];
+    const ComponentFunction = node.type as React.ComponentType<any>;
+    const renderedNode = ComponentFunction(node.props);
+
+    console.log("createInstance ComponentFunction", renderedNode);
+    if (renderedNode) {
+      const childInstance = createInstance(renderedNode);
+      if (childInstance) {
+        instance.children = [childInstance];
+      }
+    }
 
     return instance;
   }
