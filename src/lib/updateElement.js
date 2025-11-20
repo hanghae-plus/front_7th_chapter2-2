@@ -14,6 +14,9 @@ function updateAttributes(target, newProps, oldProps) {
     // 값이 같으면 스킵
     if (newValue === oldValue) return;
 
+    // children은 DOM 속성이 아니므로 스킵 (자식은 별도로 처리됨)
+    if (key === "children") return;
+
     // 이벤트 핸들러 처리
     if (key.startsWith("on") && typeof oldValue === "function") {
       const eventType = key.slice(2).toLowerCase();
