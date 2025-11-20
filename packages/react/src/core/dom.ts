@@ -7,7 +7,16 @@ import { Instance, VNode } from "./types";
  * 이벤트 핸들러, 스타일, className 등 다양한 속성을 처리해야 합니다.
  */
 export const setDomProps = (dom: HTMLElement, props: Record<string, any>): void => {
-  // 여기를 구현하세요.
+  Object.keys(props).forEach((key) => {
+    if (key === "className") {
+      dom.className = props[key];
+    } else if (key.startsWith("on")) {
+      // 이벤트
+    } else {
+      // style도 해야하나?
+      dom.setAttribute(key, props[key]);
+    }
+  });
 };
 
 /**
