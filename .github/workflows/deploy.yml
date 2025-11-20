@@ -3,7 +3,6 @@ name: Deploy to GitHub Pages
 on: 
   push: # push trigger
     branches:
-      - main
       - easy
 
 permissions:
