@@ -82,24 +82,17 @@ export function addEvent(element, eventType, handler) {
   handlers.add(handler);
 
   // root 요소 찾기 (container)
-  // element부터 시작해서 document.body의 직접 자식이거나 document까지 올라감
+  // element부터 시작해서 document.body의 직접 자식인 요소를 root로 사용
   let root = element;
   while (root.parentNode) {
-    root = root.parentNode;
-    // document.body의 직접 자식이거나 document인 경우
-    if (root === document.body || root === document) {
-      // element가 document.body의 직접 자식인 경우
-      if (element.parentNode === document.body) {
-        root = document.body;
-      } else {
-        // 그 외의 경우는 element의 부모를 root로 사용
-        root = element.parentNode;
-        while (root.parentNode && root.parentNode !== document.body) {
-          root = root.parentNode;
-        }
-      }
+    const parent = root.parentNode;
+    // document.body의 직접 자식인 경우
+    if (parent === document.body || parent === document) {
+      // root는 document.body의 직접 자식인 요소 (현재 root)
       break;
     }
+    // document.body나 document가 아니면 계속 올라감
+    root = parent;
   }
 
   // root에 이벤트 타입 등록
@@ -132,4 +125,41 @@ export function removeEvent(element, eventType, handler) {
   if (handlersMap.size === 0) {
     eventHandlers.delete(element);
   }
+}
+
+// container의 모든 자식 요소에 대해 container를 root로 설정
+export function migrateRootToContainer(container) {
+  if (!container) return;
+
+  // container의 모든 자식 요소를 순회
+  const walker = document.createTreeWalker(
+    container,
+    NodeFilter.SHOW_ELEMENT,
+    null,
+  );
+
+  const eventTypesSet = new Set();
+  let node;
+  while ((node = walker.nextNode())) {
+    // 각 요소에 등록된 이벤트 핸들러 확인
+    const handlersMap = eventHandlers.get(node);
+    if (handlersMap) {
+      // 각 이벤트 타입에 대해 container를 root로 설정
+      handlersMap.forEach((handlers, eventType) => {
+        if (handlers && handlers.size > 0) {
+          eventTypesSet.add(eventType);
+        }
+      });
+    }
+  }
+
+  // container를 root로 설정
+  let eventTypes = rootEventTypes.get(container);
+  if (!eventTypes) {
+    eventTypes = new Set();
+    rootEventTypes.set(container, eventTypes);
+  }
+  eventTypesSet.forEach((eventType) => {
+    eventTypes.add(eventType);
+  });
 }

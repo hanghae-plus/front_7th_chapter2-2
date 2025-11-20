@@ -85,13 +85,24 @@ function updateAttributes($el, props) {
 
     // 불리언 속성 처리
     if (typeof value === "boolean") {
+      // checked와 selected는 DOM 속성 없이 property만 사용
+      const isPropertyOnly = key === "checked" || key === "selected";
+
       if (value) {
-        $el.setAttribute(key, "");
-        // DOM 속성도 설정 (disabled, checked 등)
-        if (key in $el) {
-          $el[key] = true;
+        if (isPropertyOnly) {
+          // property만 설정, DOM 속성은 설정하지 않음
+          if (key in $el) {
+            $el[key] = true;
+          }
+        } else {
+          // 일반 boolean 속성은 DOM 속성도 설정
+          $el.setAttribute(key, "");
+          if (key in $el) {
+            $el[key] = true;
+          }
         }
       } else {
+        // false일 때는 항상 제거
         $el.removeAttribute(key);
         if (key in $el) {
           $el[key] = false;
