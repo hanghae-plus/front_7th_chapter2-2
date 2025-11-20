@@ -195,18 +195,24 @@ export function updateElement(parentElement, newNode, oldNode, index = 0) {
       // 자식 업데이트
       const newChildren = newNode.children || [];
       const oldChildren = oldNode.children || [];
-      const maxLength = Math.max(newChildren.length, oldChildren.length);
+      const newLength = newChildren.length;
+      const oldLength = oldChildren.length;
 
-      // 기존 자식들을 역순으로 제거 (인덱스가 변경되지 않도록)
-      for (let i = maxLength - 1; i >= 0; i--) {
-        if (i >= newChildren.length) {
-          // 새 자식이 없으면 제거
+      // 먼저 새 자식 배열의 길이만큼 순차적으로 업데이트 (배열 순서 보존)
+      for (let i = 0; i < newLength; i++) {
+        const newChild = newChildren[i];
+        const oldChild = i < oldLength ? oldChildren[i] : undefined;
+
+        // 자식 업데이트 (인덱스 순서대로 처리)
+        updateElement(currentChild, newChild, oldChild, i);
+      }
+
+      // 남은 기존 자식들을 역순으로 제거 (인덱스가 변경되지 않도록)
+      if (oldLength > newLength) {
+        for (let i = oldLength - 1; i >= newLength; i--) {
           if (currentChild.childNodes[i]) {
             currentChild.removeChild(currentChild.childNodes[i]);
           }
-        } else {
-          // 자식 업데이트
-          updateElement(currentChild, newChildren[i], oldChildren[i], i);
         }
       }
     }
