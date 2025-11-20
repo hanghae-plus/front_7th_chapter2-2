@@ -9,9 +9,12 @@ import { updateChildren } from "./updateChildren.js";
 // → 텍스트만 "Hello" → "Bye"로 변경
 
 export function updateElement(parentElement, newNode, oldNode, index = 0) {
+  // DOM 접근 최적화: childNodes[index]를 한 번만 접근
+  const targetNode = parentElement.childNodes[index];
+
   // 1. 노드 삭제: oldNode는 있는데 newNode가 없음
   if (!newNode && oldNode) {
-    return parentElement.removeChild(parentElement.childNodes[index]);
+    return parentElement.removeChild(targetNode);
   }
 
   // 2. 노드 추가: newNode는 있는데 oldNode가 없음
@@ -26,26 +29,24 @@ export function updateElement(parentElement, newNode, oldNode, index = 0) {
   if (newIsText && oldIsText) {
     if (newNode !== oldNode) {
       // 텍스트 내용이 다르면 변경
-      parentElement.childNodes[index].textContent = newNode;
+      targetNode.textContent = newNode;
     }
     return;
   }
 
   // 4. 타입 변경: div → span 등 (전체 교체)
   if (newNode.type !== oldNode.type) {
-    return parentElement.replaceChild(createElement(newNode), parentElement.childNodes[index]);
+    return parentElement.replaceChild(createElement(newNode), targetNode);
   }
 
   // 5. 같은 타입: 속성 업데이트 + children 재귀
-  const element = parentElement.childNodes[index];
-
   // 속성 업데이트
-  updateAttributes(element, newNode.props || {}, oldNode.props || {});
+  updateAttributes(targetNode, newNode.props || {}, oldNode.props || {});
 
   // Children 재귀적으로 업데이트
   const newChildren = newNode.children || [];
   const oldChildren = oldNode.children || [];
 
   // updateChildren 함수에 updateElement를 전달 (재귀 호출을 위해)
-  updateChildren(element, newChildren, oldChildren, updateElement);
+  updateChildren(targetNode, newChildren, oldChildren, updateElement);
 }
