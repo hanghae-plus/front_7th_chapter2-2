@@ -8,6 +8,7 @@ import { Instance, VNode } from "./types";
  */
 export const setDomProps = (dom: HTMLElement, props: Record<string, any>): void => {
   Object.keys(props).forEach((key) => {
+    if (key === "children") return;
     if (key === "className") {
       dom.className = props[key];
     } else if (key.startsWith("on")) {
@@ -28,14 +29,39 @@ export const updateDomProps = (
   prevProps: Record<string, any> = {},
   nextProps: Record<string, any> = {},
 ): void => {
+  if (!dom || !(dom instanceof HTMLElement)) {
+    return;
+  }
+
   Object.keys(nextProps).forEach((key) => {
+    if (key === "children") return;
+
     if (prevProps[key] !== nextProps[key]) {
-      dom.setAttribute(key, nextProps[key]);
+      if (key === "className") {
+        dom.className = nextProps[key];
+      } else if (key.startsWith("on")) {
+        // 이벤트 핸들러 처리
+      } else if (key === "style") {
+        // style 객체 처리
+      } else {
+        dom.setAttribute(key, nextProps[key]);
+      }
     }
   });
+
   Object.keys(prevProps).forEach((key) => {
+    if (key === "children") return;
+
     if (!nextProps[key]) {
-      dom.removeAttribute(key);
+      if (key === "className") {
+        dom.className = "";
+      } else if (key.startsWith("on")) {
+        // 이벤트 핸들러 제거
+      } else if (key === "style") {
+        // style 초기화
+      } else {
+        dom.removeAttribute(key);
+      }
     }
   });
 };
@@ -84,6 +110,22 @@ export const insertInstance = (
   anchor: HTMLElement | Text | null = null,
 ): void => {
   // 여기를 구현하세요.
+  if (!instance) return;
+
+  if (instance.kind === NodeTypes.FRAGMENT || instance.kind === NodeTypes.COMPONENT) {
+    instance.children.forEach((child) => insertInstance(parentDom, child, anchor));
+    return;
+  }
+
+  if (!instance.dom) return;
+
+  if (anchor) {
+    parentDom.insertBefore(instance.dom as HTMLElement, anchor);
+  } else {
+    parentDom.appendChild(instance.dom as HTMLElement);
+  }
+
+  instance.children.forEach((child) => insertInstance(instance.dom as HTMLElement, child));
 };
 
 /**
@@ -91,11 +133,16 @@ export const insertInstance = (
  */
 export const removeInstance = (parentDom: HTMLElement, instance: Instance | null): void => {
   if (!instance) {
-    parentDom.removeChild(parentDom.firstChild as Node);
+    while (parentDom.firstChild) {
+      parentDom.removeChild(parentDom.firstChild);
+    }
     return;
   }
 
-  if (!instance.dom) return;
+  if (!instance.dom) {
+    instance.children.forEach((child) => removeInstance(parentDom, child));
+    return;
+  }
 
   // Real DOM 제거
   if (instance.dom.parentNode === parentDom) {
@@ -128,7 +175,8 @@ export const createInstance = (node: VNode): Instance => {
       path: "",
     };
 
-    instance.children = node.props.children?.map((child) => createInstance(child)) ?? [];
+    instance.children =
+      node.props.children?.map((child) => createInstance(child)).filter((child) => child !== null) ?? [];
 
     return instance;
   }
@@ -142,17 +190,30 @@ export const createInstance = (node: VNode): Instance => {
       path: "",
     };
 
-    instance.children = node.props.children?.map((child) => createInstance(child)) ?? [];
+    instance.children =
+      node.props.children?.map((child) => createInstance(child)).filter((child) => child !== null) ?? [];
 
     return instance;
   }
 
-  return {
+  const dom = document.createElement(node.type as string);
+  setDomProps(dom, node.props);
+
+  const instance: Instance = {
     kind: NodeTypes.HOST,
-    dom: null,
+    dom,
     node,
     children: [],
     key: node.key ?? null,
     path: "",
   };
+
+  node.props.children?.forEach((child) => {
+    const childInstance = createInstance(child);
+    if (childInstance) {
+      instance.children.push(childInstance);
+    }
+  });
+
+  return instance;
 };
