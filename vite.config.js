@@ -13,7 +13,7 @@ export default mergeConfig(
       jsxDev: false,
     },
     optimizeDeps: {
-      esbuildOptions: {
+      rollupOptions: {
         jsx: "transform",
         jsxFactory: "createVNode",
         jsxDev: false,
@@ -24,7 +24,6 @@ export default mergeConfig(
       rollupOptions: {
         input: {
           main: resolve(__dirname, "index.html"),
-          404: resolve(__dirname, "404.html"),
         },
       },
     },
