@@ -23,7 +23,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
-	        version: latest # 여기 새로 추가되었습니다 (2025.11.18)
+	        version: latest
 
       - name: Setup Node
         uses: actions/setup-node@v4
