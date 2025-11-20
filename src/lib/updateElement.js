@@ -1,5 +1,6 @@
 import { addEvent, removeEvent } from "./eventManager";
 import { createElement } from "./createElement.js";
+import { registerEventHandlers } from "./renderElement.js";
 
 // 이벤트 핸들러 이름을 이벤트 타입으로 변환 (onClick -> click)
 function getEventType(handlerName) {
@@ -138,6 +139,7 @@ export function updateElement(parentElement, newNode, oldNode, index = 0) {
     } else {
       parentElement.appendChild(newElement);
     }
+    registerEventHandlers(newNode, newElement);
     return;
   }
 
@@ -162,6 +164,7 @@ export function updateElement(parentElement, newNode, oldNode, index = 0) {
     } else {
       parentElement.appendChild(newElement);
     }
+    registerEventHandlers(newNode, newElement);
     return;
   }
 
@@ -173,6 +176,7 @@ export function updateElement(parentElement, newNode, oldNode, index = 0) {
     } else {
       parentElement.appendChild(newElement);
     }
+    registerEventHandlers(newNode, newElement);
     return;
   }
 

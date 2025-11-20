@@ -15,7 +15,7 @@ function getEventType(handlerName) {
 }
 
 // vNode 트리를 순회하면서 이벤트 핸들러를 등록
-function registerEventHandlers(normalizedVNode, domElement) {
+export function registerEventHandlers(normalizedVNode, domElement) {
   // props에서 이벤트 핸들러 찾기
   if (normalizedVNode.props) {
     Object.keys(normalizedVNode.props).forEach((key) => {
@@ -96,9 +96,6 @@ export function renderElement(vNode, container) {
 
   // updateElement를 사용하여 업데이트
   updateElement(container, normalizedVNode, oldVNode, 0);
-
-  // 이벤트 핸들러 재등록 (변경된 요소에 대해)
-  registerEventHandlers(normalizedVNode, container.firstChild);
 
   // 이벤트 위임 설정
   setupEventListeners(container);
