@@ -37,7 +37,13 @@ export function addEvent(element, eventType, handler) {
   if (!element.__events[eventType]) {
     element.__events[eventType] = [];
   }
-  // 3. 핸들러를 배열에 추가
+
+  // 3. 중복 체크: 이미 등록된 핸들러면 추가하지 않음
+  if (element.__events[eventType].includes(handler)) {
+    return;
+  }
+
+  // 4. 핸들러를 배열에 추가
   element.__events[eventType].push(handler);
 }
 
