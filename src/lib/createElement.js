@@ -47,6 +47,12 @@ export function createElement(vNode) {
   return $el;
 }
 
+// Boolean 속성 목록 (property만 사용)
+const PROPERTY_ONLY_BOOLEAN_PROPS = ["checked", "selected"];
+
+// Boolean 속성 목록 (property + attribute 모두 사용)
+const BOOLEAN_PROPS = ["disabled", "readOnly", "multiple", "isMap"];
+
 function updateAttributes($el, props) {
   if (!props) return;
 
@@ -59,6 +65,20 @@ function updateAttributes($el, props) {
     // className 처리
     else if (key === "className") {
       $el.setAttribute("class", value);
+    }
+    // Property만 사용하는 Boolean 속성 (checked, selected)
+    else if (PROPERTY_ONLY_BOOLEAN_PROPS.includes(key)) {
+      $el[key] = value;
+      // DOM attribute는 설정하지 않음
+    }
+    // Property + Attribute 사용하는 Boolean 속성 (disabled 등)
+    else if (BOOLEAN_PROPS.includes(key)) {
+      $el[key] = value;
+      if (value) {
+        $el.setAttribute(key, "");
+      } else {
+        $el.removeAttribute(key);
+      }
     }
     // 일반 속성 처리
     else {
