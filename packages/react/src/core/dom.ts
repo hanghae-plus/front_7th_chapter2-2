@@ -1,6 +1,31 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NodeType, NodeTypes, TEXT_ELEMENT, Fragment } from "./constants";
+import { BOOLEAN_ATTRIBUTES, NodeType, NodeTypes, TEXT_ELEMENT, Fragment } from "./constants";
 import { Instance, VNode } from "./types";
+
+const normalizeClassName = (className: any): string => {
+  if (!className) return "";
+
+  if (typeof className === "string") {
+    return className.trim();
+  }
+
+  if (Array.isArray(className)) {
+    return className
+      .map((item) => normalizeClassName(item))
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+  }
+
+  if (typeof className === "object") {
+    return Object.keys(className)
+      .filter((key) => className[key])
+      .join(" ")
+      .trim();
+  }
+
+  return "";
+};
 
 /**
  * DOM 요소에 속성(props)을 설정합니다.
@@ -10,12 +35,39 @@ export const setDomProps = (dom: HTMLElement, props: Record<string, any>): void 
   Object.keys(props).forEach((key) => {
     if (key === "children") return;
     if (key === "className") {
-      dom.className = props[key];
+      const normalizedClassName = normalizeClassName(props[key]);
+      if (normalizedClassName) {
+        dom.className = normalizedClassName;
+      }
     } else if (key.startsWith("on")) {
-      // 이벤트
+      const eventName = key.toLowerCase().substring(2);
+      if (props[key]) {
+        dom.removeEventListener(eventName, props[key]);
+      }
+      dom.addEventListener(eventName, props[key]);
+    } else if (key === "style") {
+      const styleObj = props[key];
+      if (typeof styleObj === "object" && styleObj !== null) {
+        Object.keys(styleObj).forEach((styleProp) => {
+          dom.style[styleProp as any] = styleObj[styleProp];
+        });
+      } else if (typeof styleObj === "string") {
+        dom.setAttribute("style", styleObj);
+      }
     } else {
-      // style도 해야하나?
-      dom.setAttribute(key, props[key]);
+      const value = props[key];
+
+      if (BOOLEAN_ATTRIBUTES.includes(key as (typeof BOOLEAN_ATTRIBUTES)[number])) {
+        if (value) {
+          dom.setAttribute(key, "");
+          (dom as any)[key] = true;
+        } else {
+          dom.removeAttribute(key);
+          (dom as any)[key] = false;
+        }
+      } else {
+        dom.setAttribute(key, value);
+      }
     }
   });
 };
@@ -38,13 +90,37 @@ export const updateDomProps = (
 
     if (prevProps[key] !== nextProps[key]) {
       if (key === "className") {
-        dom.className = nextProps[key];
+        const normalizedClassName = normalizeClassName(nextProps[key]);
+        dom.className = normalizedClassName || "";
       } else if (key.startsWith("on")) {
-        // 이벤트 핸들러 처리
+        const eventName = key.toLowerCase().substring(2);
+        if (prevProps[key]) {
+          dom.removeEventListener(eventName, prevProps[key]);
+        }
+        dom.addEventListener(eventName, nextProps[key]);
       } else if (key === "style") {
-        // style 객체 처리
+        const styleObj = nextProps[key];
+        if (typeof styleObj === "object" && styleObj !== null) {
+          Object.keys(styleObj).forEach((styleProp) => {
+            dom.style[styleProp as any] = styleObj[styleProp];
+          });
+        } else if (typeof styleObj === "string") {
+          dom.setAttribute("style", styleObj);
+        }
       } else {
-        dom.setAttribute(key, nextProps[key]);
+        const value = nextProps[key];
+
+        if (BOOLEAN_ATTRIBUTES.includes(key as (typeof BOOLEAN_ATTRIBUTES)[number])) {
+          if (value) {
+            dom.setAttribute(key, "");
+            (dom as any)[key] = true;
+          } else {
+            dom.removeAttribute(key);
+            (dom as any)[key] = false;
+          }
+        } else {
+          dom.setAttribute(key, value);
+        }
       }
     }
   });
@@ -56,9 +132,13 @@ export const updateDomProps = (
       if (key === "className") {
         dom.className = "";
       } else if (key.startsWith("on")) {
-        // 이벤트 핸들러 제거
+        const eventName = key.toLowerCase().substring(2);
+        dom.removeEventListener(eventName, prevProps[key]);
       } else if (key === "style") {
-        // style 초기화
+        dom.removeAttribute("style");
+      } else if (BOOLEAN_ATTRIBUTES.includes(key as (typeof BOOLEAN_ATTRIBUTES)[number])) {
+        dom.removeAttribute(key);
+        (dom as any)[key] = false;
       } else {
         dom.removeAttribute(key);
       }

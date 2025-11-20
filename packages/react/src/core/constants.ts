@@ -19,3 +19,13 @@ export const HookTypes = {
 } as const;
 
 export type HookType = typeof HookTypes;
+
+export const BOOLEAN_ATTRIBUTES = [
+  "disabled",
+  "checked",
+  "readOnly",
+  "required",
+  "selected",
+  "autoFocus",
+  "multiple",
+] as const;
