@@ -1,8 +1,16 @@
 import { addEvent, removeEvent } from "./eventManager";
 
 export function updateAttributes(target, originNewProps = {}, originOldProps = {}) {
+  // 최적화: props가 둘 다 비어있으면 아무것도 안 함
+  const newKeys = Object.keys(originNewProps);
+  const oldKeys = Object.keys(originOldProps);
+
+  if (newKeys.length === 0 && oldKeys.length === 0) {
+    return;
+  }
+
   // 1. 이전 속성 제거 (newProps에 없는 것들)
-  Object.keys(originOldProps).forEach((key) => {
+  oldKeys.forEach((key) => {
     // children과 key는 속성이 아니므로 스킵
     if (key === "children" || key === "key") {
       return;
