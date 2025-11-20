@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NodeType, NodeTypes } from "./constants";
-import { Instance } from "./types";
+import { NodeType, NodeTypes, TEXT_ELEMENT, Fragment } from "./constants";
+import { Instance, VNode } from "./types";
 
 /**
  * DOM 요소에 속성(props)을 설정합니다.
@@ -19,7 +19,16 @@ export const updateDomProps = (
   prevProps: Record<string, any> = {},
   nextProps: Record<string, any> = {},
 ): void => {
-  // 여기를 구현하세요.
+  Object.keys(nextProps).forEach((key) => {
+    if (prevProps[key] !== nextProps[key]) {
+      dom.setAttribute(key, nextProps[key]);
+    }
+  });
+  Object.keys(prevProps).forEach((key) => {
+    if (!nextProps[key]) {
+      dom.removeAttribute(key);
+    }
+  });
 };
 
 /**
@@ -27,7 +36,11 @@ export const updateDomProps = (
  * Fragment나 컴포넌트 인스턴스는 여러 개의 DOM 노드를 가질 수 있습니다.
  */
 export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] => {
-  // 여기를 구현하세요.
+  if (!instance) return [];
+  if (instance.kind === NodeTypes.TEXT) return [instance.dom as Text];
+  if (instance.kind === NodeTypes.FRAGMENT) return instance.children.map((child) => getDomNodes(child)).flat();
+  if (instance.kind === NodeTypes.COMPONENT) return instance.children.map((child) => getDomNodes(child)).flat();
+  if (instance.kind === NodeTypes.HOST) return [instance.dom as HTMLElement];
   return [];
 };
 
@@ -35,7 +48,11 @@ export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] =
  * 주어진 인스턴스에서 첫 번째 실제 DOM 노드를 찾습니다.
  */
 export const getFirstDom = (instance: Instance | null): HTMLElement | Text | null => {
-  // 여기를 구현하세요.
+  if (!instance) return null;
+  if (instance.kind === NodeTypes.TEXT) return instance.dom as Text;
+  if (instance.kind === NodeTypes.FRAGMENT) return instance.children[0]?.dom as HTMLElement | Text | null;
+  if (instance.kind === NodeTypes.COMPONENT) return instance.children[0]?.dom as HTMLElement | Text | null;
+  if (instance.kind === NodeTypes.HOST) return instance.dom as HTMLElement;
   return null;
 };
 
@@ -44,7 +61,8 @@ export const getFirstDom = (instance: Instance | null): HTMLElement | Text | nul
  */
 export const getFirstDomFromChildren = (children: (Instance | null)[]): HTMLElement | Text | null => {
   // 여기를 구현하세요.
-  return null;
+  if (!children.length) return null;
+  return getFirstDom(children[0]);
 };
 
 /**
@@ -78,4 +96,54 @@ export const removeInstance = (parentDom: HTMLElement, instance: Instance | null
   // VDOM에서 real dom과 VNode 제거
   instance.dom = null;
   instance.children = [];
+};
+
+export const createInstance = (node: VNode): Instance => {
+  if (node.type === TEXT_ELEMENT) {
+    return {
+      kind: NodeTypes.TEXT,
+      dom: document.createTextNode((node.props as { nodeValue: string }).nodeValue),
+      node,
+      children: [],
+      key: null,
+      path: "",
+    };
+  }
+  if (node.type === Fragment) {
+    const instance: Instance = {
+      kind: NodeTypes.FRAGMENT,
+      dom: null,
+      node,
+      children: [],
+      key: node.key ?? null,
+      path: "",
+    };
+
+    instance.children = node.props.children?.map((child) => createInstance(child)) ?? [];
+
+    return instance;
+  }
+  if (typeof node.type === "function") {
+    const instance: Instance = {
+      kind: NodeTypes.COMPONENT,
+      dom: null,
+      node,
+      children: [],
+      key: node.key ?? null,
+      path: "",
+    };
+
+    instance.children = node.props.children?.map((child) => createInstance(child)) ?? [];
+
+    return instance;
+  }
+
+  return {
+    kind: NodeTypes.HOST,
+    dom: null,
+    node,
+    children: [],
+    key: node.key ?? null,
+    path: "",
+  };
 };
