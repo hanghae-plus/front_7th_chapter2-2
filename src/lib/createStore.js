@@ -1,11 +1,5 @@
-import { createObserver } from "./createObserver";
+import { createObserver } from './createObserver';
 
-/**
- * Redux-style Store 생성 함수
- * @param {Function} reducer - (state, action) => newState 형태의 reducer 함수
- * @param {*} initialState - 초기 상태
- * @returns {Object} { getState, dispatch, subscribe }
- */
 export const createStore = (reducer, initialState) => {
   const { subscribe, notify } = createObserver();
 

@@ -1,10 +1,24 @@
-import { setupEventListeners } from "./eventManager";
-import { createElement } from "./createElement";
-import { normalizeVNode } from "./normalizeVNode";
-import { updateElement } from "./updateElement";
+import { setupEventListeners } from './eventManager';
+import { createElement } from './createElement';
+import { normalizeVNode } from './normalizeVNode';
+import { updateElement } from './updateElement';
+
+// 컨테이너별로 이전 vNode 저장
+const containerVNodeMap = new WeakMap();
 
 export function renderElement(vNode, container) {
-  // 최초 렌더링시에는 createElement로 DOM을 생성하고
-  // 이후에는 updateElement로 기존 DOM을 업데이트한다.
-  // 렌더링이 완료되면 container에 이벤트를 등록한다.
+  const normalizedVNode = normalizeVNode(vNode);
+  const oldVNode = containerVNodeMap.get(container);
+
+  if (!oldVNode) {
+    container.innerHTML = '';
+    const element = createElement(normalizedVNode);
+    container.appendChild(element);
+  } else {
+    updateElement(container, normalizedVNode, oldVNode, 0);
+  }
+
+  containerVNodeMap.set(container, normalizedVNode);
+
+  setupEventListeners(container);
 }

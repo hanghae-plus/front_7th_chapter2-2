@@ -53,5 +53,10 @@
     "vite": "npm:rolldown-vite@latest",
     "vitest": "latest",
     "gh-pages": "^6.3.0"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
