@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { isEmptyValue } from "../utils";
 import { VNode } from "./types";
+// import { Fragment, TEXT_ELEMENT } from "./constants";
 import { Fragment, TEXT_ELEMENT } from "./constants";
 
 /**
@@ -9,15 +10,43 @@ import { Fragment, TEXT_ELEMENT } from "./constants";
  */
 export const normalizeNode = (node: VNode): VNode | null => {
   // 여기를 구현하세요.
-  return null;
+  if (isEmptyValue(node)) {
+    return null;
+  }
+
+  if (Array.isArray(node)) {
+    return {
+      type: Fragment,
+      key: null,
+      props: {
+        ...node.props,
+        children: node.map(normalizeNode).filter((n) => n !== null),
+      },
+    };
+  }
+
+  if (typeof node === "string" || typeof node === "number") {
+    return createTextElement(node);
+  }
+
+  if (typeof node === "object") {
+    return node;
+  }
+
+  return createTextElement(String(node));
 };
 
 /**
  * 텍스트 노드를 위한 VNode를 생성합니다.
  */
-const createTextElement = (node: VNode): VNode => {
+const createTextElement = (nodeValue: string | number): VNode => {
   // 여기를 구현하세요.
-  return {} as VNode;
+
+  return {
+    type: TEXT_ELEMENT,
+    key: null,
+    props: { children: [], nodeValue: String(nodeValue) },
+  };
 };
 
 /**
@@ -30,6 +59,22 @@ export const createElement = (
   ...rawChildren: any[]
 ) => {
   // 여기를 구현하세요.
+
+  const { key = null, ...rest } = originProps ?? {};
+
+  const children = rawChildren
+    .flat(Infinity)
+    .map(normalizeNode)
+    .filter((n) => n !== null);
+
+  return {
+    type,
+    key: key ?? null,
+    props: {
+      ...rest,
+      ...(children.length > 0 ? { children } : {}),
+    },
+  };
 };
 
 /**
@@ -43,6 +88,30 @@ export const createChildPath = (
   nodeType?: string | symbol | React.ComponentType,
   siblings?: VNode[],
 ): string => {
-  // 여기를 구현하세요.
-  return "";
+  // key가 있는 경우
+  if (key !== null) {
+    return `${parentPath}.k${key}`;
+  }
+
+  // key가 없는 경우
+  const isComponent = typeof nodeType === "function";
+
+  if (isComponent && siblings && nodeType) {
+    // 같은 타입의 형제 중 몇 번째인지 계산
+    let typeIndex = 0;
+
+    for (let i = 0; i < index; i++) {
+      if (siblings[i]?.type === nodeType) {
+        typeIndex++;
+      }
+    }
+
+    // 타입 이름 추출 (함수 이름 또는 고유 ID)
+    const typeName = (nodeType as any).name || "Component";
+    return `${parentPath}.${typeName}${typeIndex}`;
+  }
+
+  // HOST/TEXT: c{index}
+  const token = isComponent ? `i${index}` : `c${index}`;
+  return `${parentPath}.${token}`;
 };

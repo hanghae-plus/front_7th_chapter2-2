@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NodeType, NodeTypes } from "./constants";
+import { NodeTypes } from "./constants";
 import { Instance } from "./types";
 
 /**
@@ -8,6 +8,38 @@ import { Instance } from "./types";
  */
 export const setDomProps = (dom: HTMLElement, props: Record<string, any>): void => {
   // 여기를 구현하세요.
+
+  Object.entries(props).forEach(([key, value]) => {
+    if (key === "children" || key === "key") return;
+
+    if (key.startsWith("on")) {
+      dom.addEventListener(key.slice(2).toLowerCase(), value);
+      return;
+    }
+    if (key === "className") {
+      dom.className = value;
+      return;
+    }
+
+    if (key === "style" && typeof value === "object") {
+      Object.keys(value).forEach((styleKey) => {
+        (dom.style as any)[styleKey] = value[styleKey];
+      });
+      return;
+    }
+
+    if (value === true) {
+      dom.setAttribute(key, "");
+      return;
+    }
+
+    if (value === false || value === null || value === undefined) {
+      dom.removeAttribute(key);
+      return;
+    }
+
+    dom.setAttribute(key, value);
+  });
 };
 
 /**
@@ -20,6 +52,43 @@ export const updateDomProps = (
   nextProps: Record<string, any> = {},
 ): void => {
   // 여기를 구현하세요.
+
+  // update 했을 때 사용 안하는 props는 제거해야함.
+  Object.entries(prevProps).forEach(([key, value]) => {
+    if (key === "children") return;
+
+    if (key in nextProps) return; // 새 props에 있으면 나중에 처리
+
+    if (key.startsWith("on")) {
+      const eventType = key.slice(2).toLowerCase();
+      dom.removeEventListener(eventType, value);
+      return;
+    }
+
+    if (key === "className") {
+      dom.className = "";
+      return;
+    }
+
+    if (key === "style" && typeof value === "object") {
+      Object.keys(value).forEach((styleKey) => {
+        (dom.style as any)[styleKey] = "";
+      });
+      return;
+    }
+    dom.removeAttribute(key);
+  });
+
+  Object.entries(nextProps).forEach(([key, value]) => {
+    if (prevProps[key] !== value) {
+      // 이벤트 핸들러가 변경되었으면 이전 핸들러를 먼저 제거
+      if (key.startsWith("on") && prevProps[key]) {
+        const eventType = key.slice(2).toLowerCase();
+        dom.removeEventListener(eventType, prevProps[key]);
+      }
+      setDomProps(dom, { [key]: value });
+    }
+  });
 };
 
 /**
@@ -28,7 +97,16 @@ export const updateDomProps = (
  */
 export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] => {
   // 여기를 구현하세요.
-  return [];
+
+  if (!instance) return [];
+
+  if (instance.kind === NodeTypes.HOST) return instance.dom ? [instance.dom] : [];
+  if (instance.kind === NodeTypes.TEXT) return instance.dom ? [instance.dom] : [];
+
+  // Fragment | Component
+
+  const nodes = instance.children.map(getDomNodes).flat();
+  return nodes;
 };
 
 /**
@@ -36,7 +114,16 @@ export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] =
  */
 export const getFirstDom = (instance: Instance | null): HTMLElement | Text | null => {
   // 여기를 구현하세요.
-  return null;
+
+  if (!instance) return null;
+
+  if (instance.kind === NodeTypes.HOST) return instance.dom;
+  if (instance.kind === NodeTypes.TEXT) return instance.dom;
+
+  // Fragment | Component
+
+  // CHECK: 이거 되나?
+  return instance.children[0]?.dom ?? null;
 };
 
 /**
@@ -44,7 +131,10 @@ export const getFirstDom = (instance: Instance | null): HTMLElement | Text | nul
  */
 export const getFirstDomFromChildren = (children: (Instance | null)[]): HTMLElement | Text | null => {
   // 여기를 구현하세요.
-  return null;
+  if (children.length === 0) return null;
+
+  // CHECK: 이거 되나?
+  return children[0]?.dom ?? null;
 };
 
 /**
@@ -57,6 +147,17 @@ export const insertInstance = (
   anchor: HTMLElement | Text | null = null,
 ): void => {
   // 여기를 구현하세요.
+  if (!instance) return;
+
+  const nodes = getDomNodes(instance);
+
+  nodes.forEach((node) => {
+    if (anchor) {
+      parentDom.insertBefore(node, anchor);
+    } else {
+      parentDom.appendChild(node);
+    }
+  });
 };
 
 /**
@@ -64,4 +165,13 @@ export const insertInstance = (
  */
 export const removeInstance = (parentDom: HTMLElement, instance: Instance | null): void => {
   // 여기를 구현하세요.
+
+  const nodes = getDomNodes(instance);
+
+  nodes.forEach((node) => {
+    // setup 여러 번 호출되는 경우 문제 발생하여 추가
+    if (node.parentNode !== parentDom) return;
+
+    parentDom.removeChild(node);
+  });
 };
