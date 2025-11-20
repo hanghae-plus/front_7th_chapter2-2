@@ -1,8 +1,11 @@
 import { context } from "./context";
 import { getDomNodes, insertInstance } from "./dom";
+import { createChildPath } from "./elements";
 import { reconcile } from "./reconciler";
 import { cleanupUnusedHooks } from "./hooks";
 import { withEnqueue } from "../utils";
+
+const ROOT_PATH = "root";
 
 /**
  * 루트 컴포넌트의 렌더링을 수행하는 함수입니다.
@@ -14,7 +17,7 @@ export const render = (): void => {
   context.hooks.clear();
   // 2. reconcile 함수를 호출하여 루트 노드를 재조정합니다.
   const oldInstance = context.root.instance;
-  const newInstance = reconcile(context.root.container as HTMLElement, oldInstance, context.root.node, "");
+  const newInstance = reconcile(context.root.container as HTMLElement, oldInstance, context.root.node, ROOT_PATH);
 
   context.root.instance = newInstance;
 

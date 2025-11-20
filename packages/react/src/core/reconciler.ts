@@ -41,6 +41,8 @@ export const reconcile = (
   // 3. 타입이나 키가 다르면 기존 인스턴스를 제거하고 새로 마운트합니다.
   if (instance.node.type !== node.type || instance.key !== node.key) {
     instance.node = node;
+    const _path = createChildPath(path, node.key, 0, node.type);
+    instance.path = _path;
     removeInstance(parentDom, instance);
     return createInstance(node);
   }

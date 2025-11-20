@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BOOLEAN_ATTRIBUTES, NodeType, NodeTypes, TEXT_ELEMENT, Fragment } from "./constants";
 import { Instance, VNode } from "./types";
+import { createChildPath } from "./elements";
 
 const normalizeClassName = (className: any): string => {
   if (!className) return "";
@@ -234,7 +235,7 @@ export const removeInstance = (parentDom: HTMLElement, instance: Instance | null
   instance.children = [];
 };
 
-export const createInstance = (node: VNode): Instance => {
+export const createInstance = (node: VNode, path: string): Instance => {
   if (node.type === TEXT_ELEMENT) {
     return {
       kind: NodeTypes.TEXT,
@@ -242,7 +243,7 @@ export const createInstance = (node: VNode): Instance => {
       node,
       children: [],
       key: null,
-      path: "",
+      path,
     };
   }
   if (node.type === Fragment) {
@@ -252,11 +253,16 @@ export const createInstance = (node: VNode): Instance => {
       node,
       children: [],
       key: node.key ?? null,
-      path: "",
+      path,
     };
 
     instance.children =
-      node.props.children?.map((child) => createInstance(child)).filter((child) => child !== null) ?? [];
+      node.props.children
+        ?.map((child, index) => {
+          const childPath = createChildPath(path, node.key, index, node.type, node.props.children);
+          return createInstance(child, childPath);
+        })
+        .filter((child) => child !== null) ?? [];
 
     return instance;
   }
@@ -267,7 +273,7 @@ export const createInstance = (node: VNode): Instance => {
       node,
       children: [],
       key: node.key ?? null,
-      path: "",
+      path,
     };
 
     const ComponentFunction = node.type as React.ComponentType<any>;
@@ -275,7 +281,8 @@ export const createInstance = (node: VNode): Instance => {
 
     console.log("createInstance ComponentFunction", renderedNode);
     if (renderedNode) {
-      const childInstance = createInstance(renderedNode);
+      const childPath = createChildPath(path, node.key, 0, node.type);
+      const childInstance = createInstance(renderedNode, childPath);
       if (childInstance) {
         instance.children = [childInstance];
       }
@@ -296,8 +303,9 @@ export const createInstance = (node: VNode): Instance => {
     path: "",
   };
 
-  node.props.children?.forEach((child) => {
-    const childInstance = createInstance(child);
+  node.props.children?.forEach((child, index) => {
+    const childPath = createChildPath(path, node.key, index, node.type, node.props.children);
+    const childInstance = createInstance(child, childPath);
     if (childInstance) {
       instance.children.push(childInstance);
     }

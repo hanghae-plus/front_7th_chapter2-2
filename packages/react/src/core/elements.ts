@@ -34,6 +34,7 @@ const createTextElement = (node: string): VNode => {
  * JSX로부터 전달된 인자를 VNode 객체로 변환합니다.
  * 이 함수는 JSX 변환기에 의해 호출됩니다. (예: Babel, TypeScript)
  */
+
 export const createElement = (
   type: string | symbol | React.ComponentType<any>,
   originProps?: Record<string, any> | null,
@@ -51,6 +52,7 @@ export const createElement = (
       },
     };
   }
+
   const { key: maybeKey, ...props } = originProps ?? {};
 
   return {
@@ -75,12 +77,29 @@ export const flattenChildren = (children: any[]): unknown[] => {
  * 부모 경로와 자식의 key/index를 기반으로 고유한 경로를 생성합니다.
  * 이는 훅의 상태를 유지하고 Reconciliation에서 컴포넌트를 식별하는 데 사용됩니다.
  */
-export const createChildPath = () // parentPath: string,
-// key: string | null,
-// index: number,
-// nodeType?: string | symbol | React.ComponentType,
-// siblings?: VNode[],
-: string => {
-  // 여기를 구현하세요.
-  return "";
+export const createChildPath = (
+  parentPath: string,
+  key: string | null,
+  index: number,
+  nodeType?: string | symbol | React.ComponentType,
+  siblings?: VNode[],
+): string => {
+  if (key) {
+    const duplicatedKeys = siblings?.filter((sibling) => sibling.key === key);
+    if (duplicatedKeys && duplicatedKeys.length > 1) {
+      console.warn(`Duplicate key ${key} found in siblings`);
+    }
+
+    return `${parentPath}.key:${key}`;
+  }
+
+  if (nodeType && siblings) {
+    const sameTypeIndex = siblings.slice(0, index).filter((s) => s.type === nodeType).length;
+
+    const typeName = typeof nodeType === "string" ? nodeType : (nodeType as React.ComponentType).name || "Component";
+
+    return `${parentPath}.${typeName}:${sameTypeIndex}`;
+  }
+
+  return `${parentPath}.${index}`;
 };
