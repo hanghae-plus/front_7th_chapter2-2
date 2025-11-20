@@ -36,7 +36,7 @@ export const reconcile = (
   }
   // 2. 기존 인스턴스가 없으면 새 노드를 마운트합니다. (mount)
   if (instance === null) {
-    return createInstance(node);
+    return createInstance(node, path);
   }
   // 3. 타입이나 키가 다르면 기존 인스턴스를 제거하고 새로 마운트합니다.
   if (instance.node.type !== node.type || instance.key !== node.key) {
@@ -44,7 +44,7 @@ export const reconcile = (
     const _path = createChildPath(path, node.key, 0, node.type);
     instance.path = _path;
     removeInstance(parentDom, instance);
-    return createInstance(node);
+    return createInstance(node, _path);
   }
   // 4. 타입과 키가 같으면 인스턴스를 업데이트합니다. (update)
   //    - DOM 요소: updateDomProps로 속성 업데이트 후 자식 재조정
