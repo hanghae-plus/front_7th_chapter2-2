@@ -67,8 +67,22 @@ export function createElement(vNode) {
 function updateAttributes($el, props) {
   if (!props) return;
 
+  // 읽기 전용 속성 목록 (설정할 수 없는 속성들)
+  const readOnlyProps = [
+    "children",
+    "innerHTML",
+    "textContent",
+    "innerText",
+    "outerHTML",
+  ];
+
   Object.keys(props).forEach((key) => {
     const value = props[key];
+
+    // 읽기 전용 속성은 건너뛰기
+    if (readOnlyProps.includes(key)) {
+      return;
+    }
 
     // 이벤트 핸들러 처리 (onClick, onMouseOver 등)
     if (key.startsWith("on") && typeof value === "function") {
@@ -123,9 +137,13 @@ function updateAttributes($el, props) {
     // 일반 속성 설정
     if (value !== null && value !== undefined) {
       $el.setAttribute(key, value);
-      // DOM 속성도 설정 (id, href 등)
-      if (key in $el) {
-        $el[key] = value;
+      // DOM 속성도 설정 (id, href 등) - 읽기 전용이 아닌 경우에만
+      if (key in $el && !readOnlyProps.includes(key)) {
+        try {
+          $el[key] = value;
+        } catch {
+          // 읽기 전용 속성인 경우 무시
+        }
       }
     }
   });
