@@ -22,7 +22,9 @@ export class Router {
     document.addEventListener("click", (e) => {
       if (e.target.closest("[data-link]")) {
         e.preventDefault();
-        const url = e.target.getAttribute("href") || e.target.closest("[data-link]").getAttribute("href");
+        const url =
+          e.target.getAttribute("href") ||
+          e.target.closest("[data-link]").getAttribute("href");
         if (url) {
           this.push(url);
         }
@@ -111,7 +113,9 @@ export class Router {
   push(url) {
     try {
       // baseUrl이 없으면 자동으로 붙여줌
-      let fullUrl = url.startsWith(this.#baseUrl) ? url : this.#baseUrl + (url.startsWith("/") ? url : "/" + url);
+      let fullUrl = url.startsWith(this.#baseUrl)
+        ? url
+        : this.#baseUrl + (url.startsWith("/") ? url : "/" + url);
 
       const prevFullUrl = `${window.location.pathname}${window.location.search}`;
 
@@ -170,7 +174,11 @@ export class Router {
 
     // 빈 값들 제거
     Object.keys(updatedQuery).forEach((key) => {
-      if (updatedQuery[key] === null || updatedQuery[key] === undefined || updatedQuery[key] === "") {
+      if (
+        updatedQuery[key] === null ||
+        updatedQuery[key] === undefined ||
+        updatedQuery[key] === ""
+      ) {
         delete updatedQuery[key];
       }
     });

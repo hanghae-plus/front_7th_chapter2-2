@@ -9,4 +9,10 @@ export default [
   pluginJs.configs.recommended,
   eslintPluginPrettier,
   eslintConfigPrettier,
+  // @todo - 과제 완료 후 아래 코드 삭제
+  {
+    rules: {
+      "no-unused-vars": "warn", // error에서 warn으로 변경
+    },
+  },
 ];

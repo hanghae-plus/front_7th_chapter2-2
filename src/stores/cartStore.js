@@ -55,7 +55,9 @@ const cartReducer = (_, action) => {
         return {
           ...state,
           items: state.items.map((item) =>
-            item.id === product.productId ? { ...item, quantity: item.quantity + quantity } : item,
+            item.id === product.productId
+              ? { ...item, quantity: item.quantity + quantity }
+              : item,
           ),
         };
       } else {
@@ -85,7 +87,11 @@ const cartReducer = (_, action) => {
       const { productId, quantity } = action.payload;
       return {
         ...state,
-        items: state.items.map((item) => (item.id === productId ? { ...item, quantity: Math.max(1, quantity) } : item)),
+        items: state.items.map((item) =>
+          item.id === productId
+            ? { ...item, quantity: Math.max(1, quantity) }
+            : item,
+        ),
       };
     }
 
@@ -102,7 +108,8 @@ const cartReducer = (_, action) => {
       );
 
       // 전체 선택 상태 업데이트
-      const allSelected = updatedItems.length > 0 && updatedItems.every((item) => item.selected);
+      const allSelected =
+        updatedItems.length > 0 && updatedItems.every((item) => item.selected);
 
       return {
         ...state,
