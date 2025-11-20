@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import { resolve } from "path";
 
 const base =
-  process.env.NODE_ENV === "production" ? "/front_7th_chapter2-2/" : "";
+  process.env.NODE_ENV === "production" ? "/front_7th_chapter2-2/" : "/";
 
 export default mergeConfig(
   defineConfig({

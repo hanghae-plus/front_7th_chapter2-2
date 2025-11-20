@@ -36,7 +36,48 @@
 
 ## 과제 셀프회고
 
-<!-- 과제에 대한 회고를 작성해주세요 -->
+### 트러블슈팅
+- `createElement.js` 파일의 `updateAttributes` 함수 작성 시 null 체크 하는 부분에서 true도 제거되는 문제가 있었습니다. 리액트는 boolean type을 렌더링 하지 않는다고 알고 있어서 ... 조건에 무조건 추가해줘야 하는줄 알았습니다.
+```javascript
+if (value === undefined || value === null || typeof value === "boolean") {
+  $el.removeAttribute(...);   // ← true도 여기서 제거됨
+  if (key in $el) $el[key] = typeof $el[key] === "boolean" ? false : "";
+  return;
+}
+```
+이미 `createElement` 함수에서 체크 후 빈 텍스트 노드로 변환하기 때문에 속성값은 boolean type이더라도 분기에서 채크 후 속성값에 추가해줘야했습니다.
+```javascript
+if (typeof value === "boolean") {
+  // boolean type 속성일 때 추가해줘야함
+  $el[key] = value;
+  value ? $el.setAttribute(key, "") : $el.removeAttribute(key);
+  return;
+}
+```
+- `updateElement.js` 작성시 `updateAttributes` 함수에서 props 체크 후 처리하는 부분이 분기처리가 잘 안되고 e2e테스트에서 계속 오류가 나서 ai한테 리팩토링을 맡김ㅋ
+전역변수로 처리하지 말아야 하는 키값과 특정 attribute값을 빼두고 분기 처리 하니 제대로 동작했습니다.
+```javascript
+const SHOULD_SKIP_ATTR = new Set(["children", "key"]); // dom으로 보내지 말아야 하는 속성
+function updateAttributes(target, originNewProps, originOldProps) {
+  const newProps = originNewProps ?? {};
+  const oldProps = originOldProps ?? {};
+  // 모든 key를 가져와서 비교
+  const keys = new Set([...Object.keys(oldProps), ...Object.keys(newProps)]);
+
+  keys.forEach((key) => {
+    if (SHOULD_SKIP_ATTR.has(key)) return;
+    ...
+  }
+}
+
+```
+
+### render 정리
+1. renderElement에서 normalizeVNode를 통해 vNode를 정규화한다.
+2. createElement를 통해 vNode를 실제 DOM으로 만든다.
+  - 이때 최초 렌더링 시 addEvent가 호출되어 이벤트가 등록된다.
+3. container에 추가한다.
+4. setupEventListeners를 통해 이벤트를 등록한다.
 
 ### 아하! 모먼트 (A-ha! Moment)
 <!--
