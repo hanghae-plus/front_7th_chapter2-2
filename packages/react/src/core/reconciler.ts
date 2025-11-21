@@ -1,17 +1,8 @@
 import { context } from "./context";
-import { Fragment, NodeTypes, TEXT_ELEMENT, NodeType } from "./constants";
+import { NodeTypes } from "./constants";
 import { Instance, VNode } from "./types";
-import {
-  getFirstDom,
-  getFirstDomFromChildren,
-  insertInstance,
-  removeInstance,
-  setDomProps,
-  updateDomProps,
-  createInstance,
-} from "./dom";
+import { getFirstDom, createInstance } from "./dom";
 import { createChildPath } from "./elements";
-import { isEmptyValue } from "../utils";
 import { hookManager } from "./hookManager";
 
 /**
@@ -58,6 +49,13 @@ export const reconcile = (
     const prevProps = instance.node.props;
     instance.node = node;
 
+    // key가 없으면 path를 업데이트 (위치가 바뀔 수 있음)
+    // key가 있으면 instance.path 유지 (hook 상태 유지)
+    const currentPath = instance.key ? instance.path : path;
+    if (!instance.key) {
+      instance.path = path;
+    }
+
     if (instance.kind === NodeTypes.TEXT) {
       const textNode = instance.dom as Text;
       const newNodeValue = (node.props as { nodeValue: string }).nodeValue;
@@ -83,37 +81,37 @@ export const reconcile = (
     // 자식 Reconcile
     if (instance.kind === NodeTypes.COMPONENT) {
       const ComponentFunction = node.type as React.ComponentType;
-      const renderedNode = hookManager.runComponent(path, ComponentFunction, node.props);
+      const renderedNode = hookManager.runComponent(currentPath, ComponentFunction, node.props);
       instance.children = reconcileChildren(
         parentDom,
         instance.children as Instance[],
         renderedNode ? [renderedNode] : [],
-        path,
+        currentPath,
       );
     } else if (instance.kind === NodeTypes.FRAGMENT) {
       instance.children = reconcileChildren(
         parentDom,
         instance.children as Instance[],
         node.props.children ?? [],
-        path,
+        currentPath,
       );
     } else if (instance.kind === NodeTypes.HOST) {
       instance.children = reconcileChildren(
         instance.dom as HTMLElement,
         instance.children as Instance[],
         node.props.children ?? [],
-        path,
+        currentPath,
       );
     }
 
-    // 위치 확인 (DOM이 있는 노드만)
-    if (instance.dom) {
-      const currentNextSibling = instance.dom.nextSibling;
-      if (anchor !== currentNextSibling) {
-        context.domEffects.push({ type: "INSERT", instance, parentDOM: parentDom, anchor });
-      }
-    }
-
+    // UPDATE 경로에서는 위치 확인 안 함
+    // MOUNT와 REPLACE는 reconcile의 다른 경로에서 이미 INSERT를 큐잉함
+    context.domEffects.push({
+      type: "INSERT",
+      instance: instance,
+      parentDOM: parentDom,
+      anchor,
+    });
     return instance;
   }
   return null;
@@ -164,8 +162,6 @@ const reconcileChildren = (
       usedOldChildren.add(oldChild);
     }
 
-    // anchor 계산: 다음 형제가 있으면 그 첫 번째 DOM을 anchor로 사용
-    // 뒤에서부터 처리해야 anchor가 정확함 (아직 reconcile되지 않은 다음 형제를 찾아야 함)
     return { node, childPath, oldChild };
   });
 
@@ -181,7 +177,10 @@ const reconcileChildren = (
     if (reconciledChild) {
       reconciledChildren.unshift(reconciledChild);
       // 다음 reconcile을 위한 anchor 업데이트
-      anchor = getFirstDom(reconciledChild);
+      const childDom = getFirstDom(reconciledChild);
+      if (childDom) {
+        anchor = childDom;
+      }
     }
   }
 

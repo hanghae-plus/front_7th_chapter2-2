@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BOOLEAN_ATTRIBUTES, NodeType, NodeTypes, TEXT_ELEMENT, Fragment } from "./constants";
+import { BOOLEAN_ATTRIBUTES, NodeTypes, TEXT_ELEMENT, Fragment } from "./constants";
 import { Instance, VNode } from "./types";
 import { createChildPath } from "./elements";
 import { hookManager } from "./hookManager";
@@ -166,10 +166,20 @@ export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] =
  */
 export const getFirstDom = (instance: Instance | null): HTMLElement | Text | null => {
   if (!instance) return null;
-  if (instance.kind === NodeTypes.TEXT) return instance.dom as Text;
-  if (instance.kind === NodeTypes.FRAGMENT) return instance.children[0]?.dom as HTMLElement | Text | null;
-  if (instance.kind === NodeTypes.COMPONENT) return instance.children[0]?.dom as HTMLElement | Text | null;
-  if (instance.kind === NodeTypes.HOST) return instance.dom as HTMLElement;
+
+  if (instance.kind === NodeTypes.TEXT || instance.kind === NodeTypes.HOST) {
+    return instance.dom as HTMLElement | Text;
+  }
+
+  if (instance.kind === NodeTypes.FRAGMENT || instance.kind === NodeTypes.COMPONENT) {
+    for (const child of instance.children) {
+      const dom = getFirstDom(child);
+      if (dom) {
+        return dom;
+      }
+    }
+  }
+
   return null;
 };
 
@@ -195,14 +205,21 @@ export const insertInstance = (
   if (!instance) return;
 
   if (instance.kind === NodeTypes.FRAGMENT || instance.kind === NodeTypes.COMPONENT) {
-    instance.children.forEach((child) => insertInstance(parentDom, child, anchor));
+    let currentAnchor = anchor;
+    for (let i = instance.children.length - 1; i >= 0; i--) {
+      insertInstance(parentDom, instance.children[i], currentAnchor);
+      currentAnchor = getFirstDom(instance.children[i]);
+    }
     return;
   }
 
   if (!instance.dom) return;
 
-  if (anchor) {
-    parentDom.insertBefore(instance.dom as HTMLElement, anchor);
+  // Only use anchor if it's actually a child of parentDom
+  const useAnchor = anchor && anchor.parentNode === parentDom ? anchor : null;
+
+  if (useAnchor) {
+    parentDom.insertBefore(instance.dom as HTMLElement, useAnchor);
   } else {
     parentDom.appendChild(instance.dom as HTMLElement);
   }
