@@ -56,10 +56,10 @@ export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((
     const prevState = currentHooks[cursor];
     const newState = typeof nextValue === "function" ? nextValue(prevState) : nextValue;
 
-    if (shallowEquals(newState, prevState)) return;
+    if (Object.is(newState, prevState)) return;
     currentHooks[cursor] = newState;
     context.hooks.state.set(path, currentHooks);
-    enqueueRender(); // TODO: implement enqueueRender
+    enqueueRender();
   };
 
   hookManager.increaseCursor(path);
