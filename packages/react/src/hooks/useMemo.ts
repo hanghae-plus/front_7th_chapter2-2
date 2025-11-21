@@ -15,5 +15,14 @@ export const useMemo = <T>(factory: () => T, deps: DependencyList, equals = shal
   // 여기를 구현하세요.
   // useRef를 사용하여 이전 의존성 배열과 계산된 값을 저장해야 합니다.
   // equals 함수로 의존성을 비교하여 factory 함수를 재실행할지 결정합니다.
-  return factory();
+
+  const prevDeps = useRef<DependencyList>([]);
+  const memoizedValue = useRef<T | null>(null);
+
+  if (!prevDeps.current || !equals(prevDeps.current, deps)) {
+    prevDeps.current = deps;
+    memoizedValue.current = factory();
+  }
+
+  return memoizedValue.current as T;
 };
