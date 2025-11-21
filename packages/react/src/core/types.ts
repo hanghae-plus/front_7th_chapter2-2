@@ -43,7 +43,9 @@ type State = any;
 
 export interface HooksContext {
   state: Map<string, State[]>;
+  effect: Map<string, Array<EffectHook>>;
   cursor: Map<string, number>;
+  effectCursor: Map<string, number>;
   visited: Set<string>;
   componentStack: string[];
 
@@ -51,11 +53,13 @@ export interface HooksContext {
 
   readonly currentPath: string;
   readonly currentCursor: number;
+  readonly currentEffectCursor: number;
   readonly currentHooks: State[];
+  readonly currentEffects: Array<EffectHook>;
 }
 
 export interface EffectsContext {
-  queue: Array<{ path: string; cursor: number }>;
+  queue: Array<{ path: string; cursor: number; effect: EffectHook }>;
 }
 
 export interface Context {

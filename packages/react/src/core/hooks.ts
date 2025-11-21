@@ -62,4 +62,29 @@ export const useEffect = (effect: () => (() => void) | void, deps?: unknown[]): 
   // 2. 의존성이 변경되었거나 첫 렌더링일 경우, 이펙트 실행을 예약합니다.
   // 3. 이펙트 실행 전, 이전 클린업 함수가 있다면 먼저 실행합니다.
   // 4. 예약된 이펙트는 렌더링이 끝난 후 비동기로 실행됩니다.
+
+  // 의존성이 변경되었거나 첫 렌더링일 경우, 이펙트 실행을 예약합니다.
+  const currentPath = context.hooks.currentPath;
+  const currentCursor = context.hooks.currentEffectCursor;
+
+  const allEffects = context.hooks.effect.get(currentPath) ?? [];
+  const prevEffect = allEffects[currentCursor];
+
+  const shouldRunEffect = !prevEffect || !deps || !prevEffect.deps || !shallowEquals(prevEffect.deps, deps);
+
+  if (shouldRunEffect) {
+    const newEffect: EffectHook = {
+      kind: HookTypes.EFFECT,
+      deps: deps || null,
+      cleanup: effect() || null,
+      effect,
+    };
+
+    allEffects[currentCursor] = newEffect;
+    context.hooks.effect.set(currentPath, allEffects);
+
+    context.effects.queue.push({ path: currentPath, cursor: currentCursor, effect: newEffect });
+  }
+
+  context.hooks.effectCursor.set(currentPath, currentCursor + 1);
 };

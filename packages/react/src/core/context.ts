@@ -27,7 +27,9 @@ export const context: Context = {
    */
   hooks: {
     state: new Map(),
+    effect: new Map(),
     cursor: new Map(),
+    effectCursor: new Map(),
     visited: new Set(),
     componentStack: [],
 
@@ -71,6 +73,15 @@ export const context: Context = {
       return currentCursor;
     },
 
+    get currentEffectCursor() {
+      const currentPath = this.currentPath;
+      const currentEffectCursor = this.effectCursor.get(currentPath);
+      if (!currentEffectCursor) {
+        return 0;
+      }
+      return currentEffectCursor;
+    },
+
     /**
      * 현재 컴포넌트의 훅 상태 배열을 반환합니다.
      */
@@ -83,6 +94,15 @@ export const context: Context = {
         return [];
       }
       return currentState;
+    },
+
+    get currentEffects() {
+      const currentPath = this.currentPath;
+      const currentEffects = this.effect.get(currentPath);
+      if (!currentEffects) {
+        return [];
+      }
+      return currentEffects;
     },
   },
 
