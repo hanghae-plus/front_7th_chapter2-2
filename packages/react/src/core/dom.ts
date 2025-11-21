@@ -260,7 +260,7 @@ export const createInstance = (node: VNode, path: string): Instance => {
     instance.children =
       node.props.children
         ?.map((child, index) => {
-          const childPath = createChildPath(path, node.key, index, node.type, node.props.children);
+          const childPath = createChildPath(path, child.key, index, child.type, node.props.children);
           return createInstance(child, childPath);
         })
         .filter((child) => child !== null) ?? [];
