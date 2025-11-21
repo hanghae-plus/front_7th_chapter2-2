@@ -13,24 +13,22 @@ const ROOT_PATH = "root";
  * `enqueueRender`에 의해 스케줄링되어 호출됩니다.
  */
 export const render = (): void => {
-  // 여기를 구현하세요.
-  // 1. 훅 컨텍스트를 초기화합니다.
+  // hooks clear
   context.hooks.clear();
-  // 2. reconcile 함수를 호출하여 루트 노드를 재조정합니다.
+  context.hooks.visited.clear();
+
+  // reconcile
   const oldInstance = context.root.instance;
   const newInstance = reconcile(context.root.container as HTMLElement, oldInstance, context.root.node, ROOT_PATH);
-
   context.root.instance = newInstance;
 
-  // if (!oldInstance) {
-  //   insertInstance(context.root.container as HTMLElement, newInstance);
-  // }
+  // domEffects commit
   context.domEffects.commit();
 
-  // 3. 사용되지 않은 훅들을 정리(cleanupUnusedHooks)합니다.
+  // cleanupUnusedHooks
   cleanupUnusedHooks();
 
-  // 4. 이펙트를 실행
+  // executeEffects
   enqueue(executeEffects);
 };
 

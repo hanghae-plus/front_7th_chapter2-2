@@ -8,7 +8,21 @@ import { hookManager } from "./hookManager";
  * 사용되지 않는 컴포넌트의 훅 상태와 이펙트 클린업 함수를 정리합니다.
  */
 export const cleanupUnusedHooks = () => {
-  // 여기를 구현하세요.
+  context.hooks.state.forEach((state, path) => {
+    if (!context.hooks.visited.has(path)) {
+      context.hooks.state.delete(path);
+    }
+  });
+  context.hooks.effect.forEach((effect, path) => {
+    if (!context.hooks.visited.has(path)) {
+      effect.forEach((effect) => {
+        if (effect.cleanup) {
+          effect.cleanup();
+        }
+      });
+      context.hooks.effect.delete(path);
+    }
+  });
 };
 
 /**

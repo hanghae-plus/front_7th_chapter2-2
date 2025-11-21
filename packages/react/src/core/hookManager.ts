@@ -6,6 +6,8 @@ export const hookManager = {
     componentFunction: React.ComponentType<P>,
     props: P,
   ) {
+    context.hooks.visited.add(path);
+
     context.hooks.componentStack.push(path);
     context.hooks.cursor.set(path, 0);
     context.hooks.effectCursor.set(path, 0);
