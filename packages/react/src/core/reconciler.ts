@@ -82,7 +82,7 @@ export const reconcile = (
       instance.children =
         (node.props.children
           ?.map((child, index) => {
-            const childPath = createChildPath(path, node.key, index, node.type, node.props.children);
+            const childPath = createChildPath(path, child.key, index, child.type, node.props.children);
             return reconcile(parentDom, instance.children[index], child, childPath);
           })
           .filter((child) => child !== null) as Instance[]) ?? [];
@@ -91,7 +91,7 @@ export const reconcile = (
       instance.children =
         (node.props.children
           ?.map((child, index) => {
-            const childPath = createChildPath(path, node.key, index, node.type, node.props.children);
+            const childPath = createChildPath(path, child.key, index, child.type, node.props.children);
             return reconcile(instance.dom as HTMLElement, instance.children[index], child, childPath);
           })
           .filter((child) => child !== null) as Instance[]) ?? [];
