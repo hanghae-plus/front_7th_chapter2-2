@@ -64,7 +64,7 @@ export const reconcile = (
       updateDomProps(instance.dom as HTMLElement, prevProps, node.props);
     }
 
-    if (instance.kind === NodeTypes.COMPONENT || instance.kind === NodeTypes.FRAGMENT) {
+    if (instance.kind === NodeTypes.COMPONENT) {
       const ComponentFunction = node.type as React.ComponentType;
       const renderedNode = hookManager.runComponent(path, ComponentFunction, node.props);
 
@@ -78,11 +78,23 @@ export const reconcile = (
         instance.children = [];
       }
       return instance;
+    } else if (instance.kind === NodeTypes.FRAGMENT) {
+      instance.children =
+        (node.props.children
+          ?.map((child, index) => {
+            const childPath = createChildPath(path, node.key, index, node.type, node.props.children);
+            return reconcile(parentDom, instance.children[index], child, childPath);
+          })
+          .filter((child) => child !== null) as Instance[]) ?? [];
+      return instance;
     } else if (instance.kind === NodeTypes.HOST) {
       instance.children =
-        node.props.children?.map((child, index) =>
-          reconcile(instance.dom as HTMLElement, instance.children[index], child, ""),
-        ) ?? [];
+        (node.props.children
+          ?.map((child, index) => {
+            const childPath = createChildPath(path, node.key, index, node.type, node.props.children);
+            return reconcile(instance.dom as HTMLElement, instance.children[index], child, childPath);
+          })
+          .filter((child) => child !== null) as Instance[]) ?? [];
     }
     return instance;
   }
