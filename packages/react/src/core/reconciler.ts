@@ -32,7 +32,6 @@ export const reconcile = (
   // 여기를 구현하세요.
   // 1. 새 노드가 null이면 기존 인스턴스를 제거합니다. (unmount)
   if (node === null) {
-    // removeInstance(parentDom, instance);
     context.domEffects.push({ type: "REMOVE", instance: instance, parentDOM: parentDom });
     return null;
   }
@@ -47,11 +46,9 @@ export const reconcile = (
     instance.node = node;
     const _path = createChildPath(path, node.key, 0, node.type);
     instance.path = _path;
-    // removeInstance(parentDom, instance);
     context.domEffects.push({ type: "REMOVE", instance: instance, parentDOM: parentDom });
     const newInstance = createInstance(node, _path);
     context.domEffects.push({ type: "INSERT", instance: newInstance, parentDOM: parentDom });
-    // insertInstance(parentDom, newInst);
     return newInstance;
   }
   // 4. 타입과 키가 같으면 인스턴스를 업데이트합니다. (update)
@@ -65,7 +62,6 @@ export const reconcile = (
       const textNode = instance.dom as Text;
       const newNodeValue = (node.props as { nodeValue: string }).nodeValue;
       if (textNode.nodeValue !== newNodeValue) {
-        // textNode.nodeValue = newNodeValue;
         context.domEffects.push({
           type: "UPDATE_TEXT",
           dom: textNode,
@@ -74,7 +70,6 @@ export const reconcile = (
         });
       }
     } else if (instance.kind === NodeTypes.HOST && instance.dom) {
-      // updateDomProps(instance.dom as HTMLElement, prevProps, node.props);
       context.domEffects.push({
         type: "UPDATE_PROPS",
         dom: instance.dom as HTMLElement,
@@ -86,36 +81,81 @@ export const reconcile = (
     if (instance.kind === NodeTypes.COMPONENT) {
       const ComponentFunction = node.type as React.ComponentType;
       const renderedNode = hookManager.runComponent(path, ComponentFunction, node.props);
-
-      if (renderedNode) {
-        const childPath = createChildPath(path, node.key, 0, node.type);
-        instance.children =
-          [reconcile(parentDom as HTMLElement, instance.children[0], renderedNode, childPath)].filter(
-            (child) => child !== null,
-          ) ?? [];
-      } else {
-        instance.children = [];
-      }
+      instance.children = reconcileChildren(
+        parentDom,
+        instance.children as Instance[],
+        renderedNode ? [renderedNode] : [],
+        path,
+      );
       return instance;
     } else if (instance.kind === NodeTypes.FRAGMENT) {
-      instance.children =
-        (node.props.children
-          ?.map((child, index) => {
-            const childPath = createChildPath(path, child.key, index, child.type, node.props.children);
-            return reconcile(parentDom, instance.children[index] || null, child, childPath);
-          })
-          .filter((child) => child !== null) as Instance[]) ?? [];
+      instance.children = reconcileChildren(
+        parentDom,
+        instance.children as Instance[],
+        node.props.children ?? [],
+        path,
+      );
       return instance;
     } else if (instance.kind === NodeTypes.HOST) {
-      instance.children =
-        (node.props.children
-          ?.map((child, index) => {
-            const childPath = createChildPath(path, child.key, index, child.type, node.props.children);
-            return reconcile(instance.dom as HTMLElement, instance.children[index] || null, child, childPath);
-          })
-          .filter((child) => child !== null) as Instance[]) ?? [];
+      instance.children = reconcileChildren(
+        parentDom,
+        instance.children as Instance[],
+        node.props.children ?? [],
+        path,
+      );
+      return instance;
     }
-    return instance;
   }
   return null;
+};
+
+const reconcileChildren = (
+  parentDom: HTMLElement,
+  oldChildren: Instance[],
+  newVNodes: VNode[],
+  parentPath: string,
+): Instance[] => {
+  if (!newVNodes || newVNodes.length === 0) {
+    oldChildren.forEach((oldChild) => {
+      context.domEffects.push({
+        type: "REMOVE",
+        instance: oldChild ?? null,
+        parentDOM: parentDom,
+      });
+    });
+    return [];
+  }
+
+  const oldChildrenMap = new Map<string, Instance>();
+  oldChildren.forEach((child) => {
+    if (child.key) {
+      oldChildrenMap.set(child.key, child);
+    }
+  });
+
+  const usedOldChildren = new Set<Instance>();
+
+  const newChildren = newVNodes
+    .map((node, index) => {
+      const childPath = createChildPath(parentPath, node.key, index, node.type, newVNodes);
+      const oldChild = (node.key ? oldChildrenMap.get(node.key) : oldChildren[index]) ?? null;
+
+      if (oldChild) {
+        usedOldChildren.add(oldChild);
+      }
+
+      return reconcile(parentDom, oldChild, node, childPath);
+    })
+    .filter((child) => child !== null) as Instance[];
+
+  oldChildren.forEach((oldChild) => {
+    if (!usedOldChildren.has(oldChild)) {
+      context.domEffects.push({
+        type: "REMOVE",
+        instance: oldChild ?? null,
+        parentDOM: parentDom,
+      });
+    }
+  });
+  return newChildren;
 };
