@@ -1,13 +1,77 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NodeType, NodeTypes } from "./constants";
-import { Instance } from "./types";
+import { BOOLEAN_ATTRIBUTES, NodeTypes, TEXT_ELEMENT, Fragment } from "./constants";
+import { Instance, VNode } from "./types";
+import { createChildPath } from "./elements";
+import { hookManager } from "./hookManager";
+
+const normalizeClassName = (className: any): string => {
+  if (!className) return "";
+
+  if (typeof className === "string") {
+    return className.trim();
+  }
+
+  if (Array.isArray(className)) {
+    return className
+      .map((item) => normalizeClassName(item))
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+  }
+
+  if (typeof className === "object") {
+    return Object.keys(className)
+      .filter((key) => className[key])
+      .join(" ")
+      .trim();
+  }
+
+  return "";
+};
 
 /**
  * DOM 요소에 속성(props)을 설정합니다.
  * 이벤트 핸들러, 스타일, className 등 다양한 속성을 처리해야 합니다.
  */
 export const setDomProps = (dom: HTMLElement, props: Record<string, any>): void => {
-  // 여기를 구현하세요.
+  Object.keys(props).forEach((key) => {
+    if (key === "children") return;
+    if (key === "className") {
+      const normalizedClassName = normalizeClassName(props[key]);
+      if (normalizedClassName) {
+        dom.className = normalizedClassName;
+      }
+    } else if (key.startsWith("on")) {
+      const eventName = key.toLowerCase().substring(2);
+      if (props[key]) {
+        dom.removeEventListener(eventName, props[key]);
+      }
+      dom.addEventListener(eventName, props[key]);
+    } else if (key === "style") {
+      const styleObj = props[key];
+      if (typeof styleObj === "object" && styleObj !== null) {
+        Object.keys(styleObj).forEach((styleProp) => {
+          dom.style[styleProp as any] = styleObj[styleProp];
+        });
+      } else if (typeof styleObj === "string") {
+        dom.setAttribute("style", styleObj);
+      }
+    } else {
+      const value = props[key];
+
+      if (BOOLEAN_ATTRIBUTES.includes(key as (typeof BOOLEAN_ATTRIBUTES)[number])) {
+        if (value) {
+          dom.setAttribute(key, "");
+          (dom as any)[key] = true;
+        } else {
+          dom.removeAttribute(key);
+          (dom as any)[key] = false;
+        }
+      } else {
+        dom.setAttribute(key, value);
+      }
+    }
+  });
 };
 
 /**
@@ -19,7 +83,69 @@ export const updateDomProps = (
   prevProps: Record<string, any> = {},
   nextProps: Record<string, any> = {},
 ): void => {
-  // 여기를 구현하세요.
+  if (!dom || !(dom instanceof HTMLElement)) {
+    return;
+  }
+
+  Object.keys(nextProps).forEach((key) => {
+    if (key === "children") return;
+
+    if (prevProps[key] !== nextProps[key]) {
+      if (key === "className") {
+        const normalizedClassName = normalizeClassName(nextProps[key]);
+        dom.className = normalizedClassName || "";
+      } else if (key.startsWith("on")) {
+        const eventName = key.toLowerCase().substring(2);
+        if (prevProps[key]) {
+          dom.removeEventListener(eventName, prevProps[key]);
+        }
+        dom.addEventListener(eventName, nextProps[key]);
+      } else if (key === "style") {
+        const styleObj = nextProps[key];
+        if (typeof styleObj === "object" && styleObj !== null) {
+          Object.keys(styleObj).forEach((styleProp) => {
+            dom.style[styleProp as any] = styleObj[styleProp];
+          });
+        } else if (typeof styleObj === "string") {
+          dom.setAttribute("style", styleObj);
+        }
+      } else {
+        const value = nextProps[key];
+
+        if (BOOLEAN_ATTRIBUTES.includes(key as (typeof BOOLEAN_ATTRIBUTES)[number])) {
+          if (value) {
+            dom.setAttribute(key, "");
+            (dom as any)[key] = true;
+          } else {
+            dom.removeAttribute(key);
+            (dom as any)[key] = false;
+          }
+        } else {
+          dom.setAttribute(key, value);
+        }
+      }
+    }
+  });
+
+  Object.keys(prevProps).forEach((key) => {
+    if (key === "children") return;
+
+    if (!(key in nextProps)) {
+      if (key === "className") {
+        dom.className = "";
+      } else if (key.startsWith("on")) {
+        const eventName = key.toLowerCase().substring(2);
+        dom.removeEventListener(eventName, prevProps[key]);
+      } else if (key === "style") {
+        dom.removeAttribute("style");
+      } else if (BOOLEAN_ATTRIBUTES.includes(key as (typeof BOOLEAN_ATTRIBUTES)[number])) {
+        dom.removeAttribute(key);
+        (dom as any)[key] = false;
+      } else {
+        dom.removeAttribute(key);
+      }
+    }
+  });
 };
 
 /**
@@ -27,7 +153,11 @@ export const updateDomProps = (
  * Fragment나 컴포넌트 인스턴스는 여러 개의 DOM 노드를 가질 수 있습니다.
  */
 export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] => {
-  // 여기를 구현하세요.
+  if (!instance) return [];
+  if (instance.kind === NodeTypes.TEXT) return [instance.dom as Text];
+  if (instance.kind === NodeTypes.FRAGMENT) return instance.children.map((child) => getDomNodes(child)).flat();
+  if (instance.kind === NodeTypes.COMPONENT) return instance.children.map((child) => getDomNodes(child)).flat();
+  if (instance.kind === NodeTypes.HOST) return [instance.dom as HTMLElement];
   return [];
 };
 
@@ -35,7 +165,21 @@ export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] =
  * 주어진 인스턴스에서 첫 번째 실제 DOM 노드를 찾습니다.
  */
 export const getFirstDom = (instance: Instance | null): HTMLElement | Text | null => {
-  // 여기를 구현하세요.
+  if (!instance) return null;
+
+  if (instance.kind === NodeTypes.TEXT || instance.kind === NodeTypes.HOST) {
+    return instance.dom as HTMLElement | Text;
+  }
+
+  if (instance.kind === NodeTypes.FRAGMENT || instance.kind === NodeTypes.COMPONENT) {
+    for (const child of instance.children) {
+      const dom = getFirstDom(child);
+      if (dom) {
+        return dom;
+      }
+    }
+  }
+
   return null;
 };
 
@@ -44,7 +188,8 @@ export const getFirstDom = (instance: Instance | null): HTMLElement | Text | nul
  */
 export const getFirstDomFromChildren = (children: (Instance | null)[]): HTMLElement | Text | null => {
   // 여기를 구현하세요.
-  return null;
+  if (!children.length) return null;
+  return getFirstDom(children[0]);
 };
 
 /**
@@ -57,11 +202,131 @@ export const insertInstance = (
   anchor: HTMLElement | Text | null = null,
 ): void => {
   // 여기를 구현하세요.
+  if (!instance) return;
+
+  if (instance.kind === NodeTypes.FRAGMENT || instance.kind === NodeTypes.COMPONENT) {
+    let currentAnchor = anchor;
+    for (let i = instance.children.length - 1; i >= 0; i--) {
+      insertInstance(parentDom, instance.children[i], currentAnchor);
+      currentAnchor = getFirstDom(instance.children[i]);
+    }
+    return;
+  }
+
+  if (!instance.dom) return;
+
+  // Only use anchor if it's actually a child of parentDom
+  const useAnchor = anchor && anchor.parentNode === parentDom ? anchor : null;
+
+  if (useAnchor) {
+    parentDom.insertBefore(instance.dom as HTMLElement, useAnchor);
+  } else {
+    parentDom.appendChild(instance.dom as HTMLElement);
+  }
+
+  instance.children.forEach((child) => insertInstance(instance.dom as HTMLElement, child));
 };
 
 /**
  * 부모 DOM에서 인스턴스에 해당하는 모든 DOM 노드를 제거합니다.
  */
 export const removeInstance = (parentDom: HTMLElement, instance: Instance | null): void => {
-  // 여기를 구현하세요.
+  if (!instance) {
+    while (parentDom.firstChild) {
+      parentDom.removeChild(parentDom.firstChild);
+    }
+    return;
+  }
+
+  if (!instance.dom) {
+    instance.children.forEach((child) => removeInstance(parentDom, child));
+    return;
+  }
+
+  // Real DOM 제거
+  if (instance.dom.parentNode === parentDom) {
+    parentDom.removeChild(instance.dom);
+  }
+
+  // VDOM에서 real dom과 VNode 제거
+  instance.dom = null;
+  instance.children = [];
+};
+
+export const createInstance = (node: VNode, path: string): Instance => {
+  if (node.type === TEXT_ELEMENT) {
+    return {
+      kind: NodeTypes.TEXT,
+      dom: document.createTextNode((node.props as { nodeValue: string }).nodeValue),
+      node,
+      children: [],
+      key: null,
+      path,
+    };
+  }
+  if (node.type === Fragment) {
+    const instance: Instance = {
+      kind: NodeTypes.FRAGMENT,
+      dom: null,
+      node,
+      children: [],
+      key: node.key ?? null,
+      path,
+    };
+
+    instance.children =
+      node.props.children
+        ?.map((child, index) => {
+          const childPath = createChildPath(path, child.key, index, child.type, node.props.children);
+          return createInstance(child, childPath);
+        })
+        .filter((child) => child !== null) ?? [];
+
+    return instance;
+  }
+  if (typeof node.type === "function") {
+    const instance: Instance = {
+      kind: NodeTypes.COMPONENT,
+      dom: null,
+      node,
+      children: [],
+      key: node.key ?? null,
+      path,
+    };
+
+    const ComponentFunction = node.type as React.ComponentType<any>;
+    const renderedNode = hookManager.runComponent(path, ComponentFunction, node.props);
+
+    if (renderedNode) {
+      const childPath = createChildPath(path, renderedNode.key, 0, renderedNode.type, [renderedNode]);
+      const childInstance = createInstance(renderedNode, childPath);
+      if (childInstance) {
+        instance.children = [childInstance];
+      }
+    }
+
+    return instance;
+  }
+
+  const dom = document.createElement(node.type as string);
+  setDomProps(dom, node.props);
+
+  const instance: Instance = {
+    kind: NodeTypes.HOST,
+    dom,
+    node,
+    children: [],
+    key: node.key ?? null,
+    path,
+  };
+
+  node.props.children?.forEach((child, index) => {
+    const childPath = createChildPath(path, child.key, index, child.type, node.props.children);
+    const childInstance = createInstance(child, childPath);
+    if (childInstance) {
+      instance.children.push(childInstance);
+    }
+  });
+
+  return instance;
 };

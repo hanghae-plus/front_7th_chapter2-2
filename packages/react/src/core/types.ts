@@ -1,4 +1,4 @@
-import type { HookType, NodeType } from "./constants";
+import type { NodeType } from "./constants";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Props = Record<string, any> & { children?: VNode[] };
@@ -23,46 +23,62 @@ export interface Instance {
   path: string;
 }
 
-export interface EffectHook {
-  kind: HookType["EFFECT"];
+// --- Hooks Types (Single Array Structure) ---
+
+export interface BaseHook {
+  tag: string;
+}
+
+export interface StateHook<T> extends BaseHook {
+  tag: "STATE";
+  state: T;
+}
+
+export interface EffectHook extends BaseHook {
+  tag: "EFFECT";
+  path: string;
   deps: unknown[] | null;
   cleanup: (() => void) | null;
   effect: () => (() => void) | void;
 }
 
+export type Hook = StateHook<unknown> | EffectHook;
+
+// --- Context Types ---
+
 export interface RootContext {
   container: HTMLElement | null;
   node: VNode | null;
   instance: Instance | null;
-
-  reset(options: { container: HTMLElement; node: VNode }): void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type State = any;
-
-export interface HooksContext {
-  state: Map<string, State[]>;
-  cursor: Map<string, number>;
-  visited: Set<string>;
-  componentStack: string[];
-
-  clear(): void;
-
-  readonly currentPath: string;
-  readonly currentCursor: number;
-  readonly currentHooks: State[];
-}
-
-export interface EffectsContext {
-  queue: Array<{ path: string; cursor: number }>;
-}
-
-export interface Context {
+// Persistent context
+export interface StoreContext {
   root: RootContext;
-  hooks: HooksContext;
-  effects: EffectsContext;
+  hooks: Map<string, Hook[]>;
+  cleanupEffects: Map<string, (() => void)[]>;
 }
+
+// Temporary context for each render
+export interface RuntimeContext {
+  cursor: {
+    path: string | null;
+    index: number;
+  };
+  workQueue: {
+    domMutations: DomEffect[];
+    passiveEffects: EffectHook[];
+    cleanups: (() => void)[];
+  };
+  componentStack: string[];
+  visited: Set<string>;
+}
+
+export type DomEffect =
+  | { type: "INSERT"; instance: Instance; parentDOM: HTMLElement; anchor?: Node | null }
+  | { type: "REMOVE"; instance: Instance | null; parentDOM: HTMLElement }
+  | { type: "UPDATE_PROPS"; dom: HTMLElement; prevProps: Props; nextProps: Props }
+  | { type: "UPDATE_TEXT"; dom: Text; prevText: string; nextText: string };
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
