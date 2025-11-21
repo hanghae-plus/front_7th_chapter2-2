@@ -25,3 +25,6 @@ dist-ssr
 /test-results/
 /playwright-report/
 /coverage/
+
+# Review files (개인 회고, PR 작성용)
+review/

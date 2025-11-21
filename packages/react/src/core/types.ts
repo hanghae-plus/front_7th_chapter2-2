@@ -8,6 +8,8 @@ export interface FunctionComponent<P extends Props> {
   displayName?: string;
 }
 
+export type ComponentType<P extends Props = Props> = FunctionComponent<P>;
+
 export interface VNode {
   type: string | symbol | React.ComponentType;
   key: string | null;
@@ -35,7 +37,7 @@ export interface RootContext {
   node: VNode | null;
   instance: Instance | null;
 
-  reset(options: { container: HTMLElement; node: VNode }): void;
+  reset(options: { container: HTMLElement; node: VNode | null }): void;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,7 +57,7 @@ export interface HooksContext {
 }
 
 export interface EffectsContext {
-  queue: Array<{ path: string; cursor: number }>;
+  queue: Array<() => void>;
 }
 
 export interface Context {
