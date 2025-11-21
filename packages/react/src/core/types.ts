@@ -60,6 +60,7 @@ export interface HooksContext {
 
 export interface EffectsContext {
   queue: Array<{ path: string; cursor: number; effect: EffectHook }>;
+  clear(): void;
 }
 
 export interface DomEffectsContext {

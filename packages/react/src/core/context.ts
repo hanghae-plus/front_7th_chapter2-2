@@ -38,8 +38,6 @@ export const context: Context = {
      * 모든 훅 관련 상태를 초기화합니다.
      */
     clear() {
-      // 여기를 구현하세요.
-      // state, cursor, visited, componentStack을 모두 비웁니다.
       this.cursor.clear();
       this.effectCursor.clear();
       this.visited.clear();
@@ -103,6 +101,9 @@ export const context: Context = {
    */
   effects: {
     queue: [],
+    clear() {
+      this.queue = [];
+    },
   },
 
   // DOM Effect Queue
