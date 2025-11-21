@@ -12,6 +12,7 @@ import {
 } from "./dom";
 import { createChildPath } from "./elements";
 import { isEmptyValue } from "../utils";
+import { hookManager } from "./hookManager";
 
 /**
  * 이전 인스턴스와 새로운 VNode를 비교하여 DOM을 업데이트하는 재조정 과정을 수행합니다.
@@ -64,10 +65,19 @@ export const reconcile = (
     }
 
     if (instance.kind === NodeTypes.COMPONENT || instance.kind === NodeTypes.FRAGMENT) {
-      instance.children =
-        node.props.children?.map((child, index) =>
-          reconcile(parentDom as HTMLElement, instance.children[index], child, ""),
-        ) ?? [];
+      const ComponentFunction = node.type as React.ComponentType;
+      const renderedNode = hookManager.runComponent(path, ComponentFunction, node.props);
+
+      if (renderedNode) {
+        const childPath = createChildPath(path, node.key, 0, node.type);
+        instance.children =
+          [reconcile(parentDom as HTMLElement, instance.children[0], renderedNode, childPath)].filter(
+            (child) => child !== null,
+          ) ?? [];
+      } else {
+        instance.children = [];
+      }
+      return instance;
     } else if (instance.kind === NodeTypes.HOST) {
       instance.children =
         node.props.children?.map((child, index) =>

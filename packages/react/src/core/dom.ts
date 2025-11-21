@@ -2,6 +2,7 @@
 import { BOOLEAN_ATTRIBUTES, NodeType, NodeTypes, TEXT_ELEMENT, Fragment } from "./constants";
 import { Instance, VNode } from "./types";
 import { createChildPath } from "./elements";
+import { hookManager } from "./hookManager";
 
 const normalizeClassName = (className: any): string => {
   if (!className) return "";
@@ -277,9 +278,8 @@ export const createInstance = (node: VNode, path: string): Instance => {
     };
 
     const ComponentFunction = node.type as React.ComponentType<any>;
-    const renderedNode = ComponentFunction(node.props);
+    const renderedNode = hookManager.runComponent(path, ComponentFunction, node.props);
 
-    console.log("createInstance ComponentFunction", renderedNode);
     if (renderedNode) {
       const childPath = createChildPath(path, node.key, 0, node.type);
       const childInstance = createInstance(renderedNode, childPath);
