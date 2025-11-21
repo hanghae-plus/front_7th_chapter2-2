@@ -27,7 +27,7 @@ export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((
   let state: T;
 
   if (cursor >= hooks.length) {
-    state = typeof initialValue == "function" ? initialValue() : initialValue;
+    state = typeof initialValue === "function" ? initialValue() : initialValue;
     hooks[cursor] = state;
     context.hooks.state.set(path, hooks);
   } else {
@@ -40,7 +40,7 @@ export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((
   const setState = (nextValue: T | ((prev: T) => T)) => {
     const currentHooks = context.hooks.state.get(path) ?? [];
     const prevState = currentHooks[cursor];
-    const newState = typeof nextValue == "function" ? nextValue(state) : nextValue;
+    const newState = typeof nextValue === "function" ? nextValue(state) : nextValue;
 
     if (shallowEquals(newState, prevState)) return;
     currentHooks[cursor] = newState;
