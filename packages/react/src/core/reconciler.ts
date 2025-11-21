@@ -21,6 +21,7 @@ import { hookManager } from "./hookManager";
  * @param instance - 이전 렌더링의 인스턴스
  * @param node - 새로운 VNode
  * @param path - 현재 노드의 고유 경로
+ * @param anchor - 이 노드가 삽입될 위치의 다음 형제 DOM (null이면 마지막에 추가)
  * @returns 업데이트되거나 새로 생성된 인스턴스
  */
 export const reconcile = (
@@ -28,6 +29,7 @@ export const reconcile = (
   instance: Instance | null,
   node: VNode | null,
   path: string,
+  anchor: HTMLElement | Text | null = null,
 ): Instance | null => {
   // 여기를 구현하세요.
   // 1. 새 노드가 null이면 기존 인스턴스를 제거합니다. (unmount)
@@ -38,17 +40,15 @@ export const reconcile = (
   // 2. 기존 인스턴스가 없으면 새 노드를 마운트합니다. (mount)
   if (instance === null) {
     const newInstance = createInstance(node, path);
-    context.domEffects.push({ type: "INSERT", instance: newInstance, parentDOM: parentDom });
+    context.domEffects.push({ type: "INSERT", instance: newInstance, parentDOM: parentDom, anchor });
     return newInstance;
   }
   // 3. 타입이나 키가 다르면 기존 인스턴스를 제거하고 새로 마운트합니다.
   if (instance.node.type !== node.type || instance.key !== node.key) {
-    instance.node = node;
     const _path = createChildPath(path, node.key, 0, node.type);
-    instance.path = _path;
     context.domEffects.push({ type: "REMOVE", instance: instance, parentDOM: parentDom });
     const newInstance = createInstance(node, _path);
-    context.domEffects.push({ type: "INSERT", instance: newInstance, parentDOM: parentDom });
+    context.domEffects.push({ type: "INSERT", instance: newInstance, parentDOM: parentDom, anchor });
     return newInstance;
   }
   // 4. 타입과 키가 같으면 인스턴스를 업데이트합니다. (update)
@@ -69,16 +69,18 @@ export const reconcile = (
           nextText: newNodeValue,
         });
       }
-      return instance;
     } else if (instance.kind === NodeTypes.HOST && instance.dom) {
-      context.domEffects.push({
-        type: "UPDATE_PROPS",
-        dom: instance.dom as HTMLElement,
-        prevProps: prevProps,
-        nextProps: node.props,
-      });
+      if (prevProps !== node.props) {
+        context.domEffects.push({
+          type: "UPDATE_PROPS",
+          dom: instance.dom as HTMLElement,
+          prevProps: prevProps,
+          nextProps: node.props,
+        });
+      }
     }
 
+    // 자식 Reconcile
     if (instance.kind === NodeTypes.COMPONENT) {
       const ComponentFunction = node.type as React.ComponentType;
       const renderedNode = hookManager.runComponent(path, ComponentFunction, node.props);
@@ -88,7 +90,6 @@ export const reconcile = (
         renderedNode ? [renderedNode] : [],
         path,
       );
-      return instance;
     } else if (instance.kind === NodeTypes.FRAGMENT) {
       instance.children = reconcileChildren(
         parentDom,
@@ -96,7 +97,6 @@ export const reconcile = (
         node.props.children ?? [],
         path,
       );
-      return instance;
     } else if (instance.kind === NodeTypes.HOST) {
       instance.children = reconcileChildren(
         instance.dom as HTMLElement,
@@ -104,8 +104,17 @@ export const reconcile = (
         node.props.children ?? [],
         path,
       );
-      return instance;
     }
+
+    // 위치 확인 (DOM이 있는 노드만)
+    if (instance.dom) {
+      const currentNextSibling = instance.dom.nextSibling;
+      if (anchor !== currentNextSibling) {
+        context.domEffects.push({ type: "INSERT", instance, parentDOM: parentDom, anchor });
+      }
+    }
+
+    return instance;
   }
   return null;
 };
@@ -136,38 +145,56 @@ const reconcileChildren = (
 
   const usedOldChildren = new Set<Instance>();
 
-  const newChildren = newVNodes
-    .map((node, index) => {
-      const childPath = createChildPath(parentPath, node.key, index, node.type, newVNodes);
-      let oldChild: Instance | null = null;
+  const newChildren = newVNodes.map((node, index) => {
+    const childPath = createChildPath(parentPath, node.key, index, node.type, newVNodes);
+    let oldChild: Instance | null = null;
 
-      if (node.key) {
-        oldChild = oldChildrenMap.get(node.key) ?? null;
+    if (node.key) {
+      oldChild = oldChildrenMap.get(node.key) ?? null;
+    } else {
+      const candidateChild = oldChildren[index];
+      if (candidateChild && candidateChild.node.type === node.type) {
+        oldChild = candidateChild;
       } else {
-        const candidateChild = oldChildren[index];
-        if (candidateChild && candidateChild.node.type === node.type) {
-          oldChild = candidateChild;
-        } else {
-          oldChild = oldChildren.find((child) => !usedOldChildren.has(child) && child.node.type === node.type) ?? null;
-        }
+        oldChild = oldChildren.find((child) => !usedOldChildren.has(child) && child.node.type === node.type) ?? null;
       }
+    }
 
-      if (oldChild) {
-        usedOldChildren.add(oldChild);
-      }
+    if (oldChild) {
+      usedOldChildren.add(oldChild);
+    }
 
-      return reconcile(parentDom, oldChild, node, childPath);
-    })
-    .filter((child) => child !== null) as Instance[];
+    // anchor 계산: 다음 형제가 있으면 그 첫 번째 DOM을 anchor로 사용
+    // 뒤에서부터 처리해야 anchor가 정확함 (아직 reconcile되지 않은 다음 형제를 찾아야 함)
+    return { node, childPath, oldChild };
+  });
 
+  // 뒤에서부터 reconcile해서 anchor가 정확하도록 함
+  let anchor: HTMLElement | Text | null = null;
+  const reconciledChildren: Instance[] = [];
+
+  for (let i = newChildren.length - 1; i >= 0; i--) {
+    const { node, childPath, oldChild } = newChildren[i];
+    const reconciledChild = reconcile(parentDom, oldChild, node, childPath, anchor);
+
+    // reconcile은 null을 반환할 수 있지만, 정상 케이스에서는 항상 Instance를 반환
+    if (reconciledChild) {
+      reconciledChildren.unshift(reconciledChild);
+      // 다음 reconcile을 위한 anchor 업데이트
+      anchor = getFirstDom(reconciledChild);
+    }
+  }
+
+  // 사용되지 않은 이전 자식들 제거
   oldChildren.forEach((oldChild) => {
     if (!usedOldChildren.has(oldChild)) {
       context.domEffects.push({
         type: "REMOVE",
-        instance: oldChild ?? null,
+        instance: oldChild,
         parentDOM: parentDom,
       });
     }
   });
-  return newChildren;
+
+  return reconciledChildren;
 };

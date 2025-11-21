@@ -119,7 +119,7 @@ export const context: Context = {
       for (const domEffect of this.queue) {
         switch (domEffect.type) {
           case "INSERT":
-            insertInstance(domEffect.parentDOM, domEffect.instance);
+            insertInstance(domEffect.parentDOM, domEffect.instance, domEffect.anchor ?? null);
             break;
           case "REMOVE":
             removeInstance(domEffect.parentDOM, domEffect.instance);
