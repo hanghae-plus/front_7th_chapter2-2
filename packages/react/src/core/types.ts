@@ -1,4 +1,4 @@
-import type { HookType, NodeType } from "./constants";
+import type { NodeType } from "./constants";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Props = Record<string, any> & { children?: VNode[] };
@@ -23,53 +23,55 @@ export interface Instance {
   path: string;
 }
 
-export interface EffectHook {
-  kind: HookType["EFFECT"];
+// --- Hooks Types (Single Array Structure) ---
+
+export interface BaseHook {
+  tag: string;
+}
+
+export interface StateHook<T> extends BaseHook {
+  tag: "STATE";
+  state: T;
+}
+
+export interface EffectHook extends BaseHook {
+  tag: "EFFECT";
+  path: string;
   deps: unknown[] | null;
   cleanup: (() => void) | null;
   effect: () => (() => void) | void;
 }
 
+export type Hook = StateHook<unknown> | EffectHook;
+
+// --- Context Types ---
+
 export interface RootContext {
   container: HTMLElement | null;
   node: VNode | null;
   instance: Instance | null;
-
-  reset(options: { container: HTMLElement; node: VNode }): void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type State = any;
+// Persistent context
+export interface StoreContext {
+  root: RootContext;
+  hooks: Map<string, Hook[]>;
+  cleanupEffects: Map<string, (() => void)[]>;
+}
 
-export interface HooksContext {
-  state: Map<string, State[]>;
-  effect: Map<string, Array<EffectHook>>;
-  cursor: Map<string, number>;
-  effectCursor: Map<string, number>;
-  visited: Set<string>;
+// Temporary context for each render
+export interface RuntimeContext {
+  cursor: {
+    path: string | null;
+    index: number;
+  };
+  workQueue: {
+    domMutations: DomEffect[];
+    passiveEffects: EffectHook[];
+    cleanups: (() => void)[];
+  };
   componentStack: string[];
-
-  unmountQueue: Array<() => void>;
-
-  clear(): void;
-
-  readonly currentPath: string;
-  readonly currentCursor: number;
-  readonly currentEffectCursor: number;
-  readonly currentHooks: State[];
-  readonly currentEffects: Array<EffectHook>;
-}
-
-export interface EffectsContext {
-  queue: Array<{ path: string; cursor: number; effect: EffectHook }>;
-  clear(): void;
-}
-
-export interface DomEffectsContext {
-  queue: Array<DomEffect>;
-  push(domEffect: DomEffect): void;
-  clear(): void;
-  commit(): void;
+  visited: Set<string>;
 }
 
 export type DomEffect =
@@ -77,13 +79,6 @@ export type DomEffect =
   | { type: "REMOVE"; instance: Instance | null; parentDOM: HTMLElement }
   | { type: "UPDATE_PROPS"; dom: HTMLElement; prevProps: Props; nextProps: Props }
   | { type: "UPDATE_TEXT"; dom: Text; prevText: string; nextText: string };
-
-export interface Context {
-  root: RootContext;
-  hooks: HooksContext;
-  effects: EffectsContext;
-  domEffects: DomEffectsContext;
-}
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace

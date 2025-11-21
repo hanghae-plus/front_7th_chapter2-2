@@ -1,4 +1,4 @@
-import { context } from "./context";
+import { runtimeContext } from "./context";
 
 export const hookManager = {
   runComponent<P extends Record<string, unknown> = Record<string, unknown>>(
@@ -6,26 +6,17 @@ export const hookManager = {
     componentFunction: React.ComponentType<P>,
     props: P,
   ) {
-    context.hooks.visited.add(path);
+    runtimeContext.visited.add(path);
+    runtimeContext.componentStack.push(path);
 
-    context.hooks.componentStack.push(path);
-    context.hooks.cursor.set(path, 0);
-    context.hooks.effectCursor.set(path, 0);
+    runtimeContext.cursor.path = path;
+    runtimeContext.cursor.index = 0;
 
     try {
       return componentFunction(props);
     } finally {
-      context.hooks.componentStack.pop();
+      runtimeContext.componentStack.pop();
+      runtimeContext.cursor.path = runtimeContext.componentStack[runtimeContext.componentStack.length - 1] ?? null;
     }
-  },
-
-  increaseCursor(path: string) {
-    const currentCursor = context.hooks.cursor.get(path) ?? 0;
-    context.hooks.cursor.set(path, currentCursor + 1);
-  },
-
-  increaseEffectCursor(path: string) {
-    const currentEffectCursor = context.hooks.effectCursor.get(path) ?? 0;
-    context.hooks.effectCursor.set(path, currentEffectCursor + 1);
   },
 };
