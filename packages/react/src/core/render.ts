@@ -1,6 +1,4 @@
 import { context } from "./context";
-import { getDomNodes, insertInstance } from "./dom";
-import { createChildPath } from "./elements";
 import { reconcile } from "./reconciler";
 import { cleanupUnusedHooks } from "./hooks";
 import { enqueue, withEnqueue } from "../utils";
@@ -38,6 +36,11 @@ export const render = (): void => {
 export const enqueueRender = withEnqueue(render);
 
 const executeEffects = () => {
+  while (context.hooks.unmountQueue.length > 0) {
+    const cleanup = context.hooks.unmountQueue.shift();
+    if (cleanup) cleanup();
+  }
+
   const effectQueue = context.effects.queue;
 
   const effectQueueToExecute: EffectHook[] = [];
@@ -48,10 +51,26 @@ const executeEffects = () => {
   }
 
   for (const effect of effectQueueToExecute) {
-    if (effect.cleanup) effect.cleanup();
+    if (effect.cleanup) {
+      try {
+        effect.cleanup();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }
 
-    const newCleanup = effect.effect();
-    if (newCleanup) effect.cleanup = newCleanup;
+  for (const effect of effectQueueToExecute) {
+    try {
+      const newCleanup = effect.effect();
+      if (typeof newCleanup === "function") {
+        effect.cleanup = newCleanup;
+      } else {
+        effect.cleanup = null;
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   context.effects.queue = [];

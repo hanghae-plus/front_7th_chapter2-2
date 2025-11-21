@@ -34,6 +34,8 @@ export const context: Context = {
     visited: new Set(),
     componentStack: [],
 
+    unmountQueue: [],
+
     /**
      * 모든 훅 관련 상태를 초기화합니다.
      */

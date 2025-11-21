@@ -49,6 +49,8 @@ export interface HooksContext {
   visited: Set<string>;
   componentStack: string[];
 
+  unmountQueue: Array<() => void>;
+
   clear(): void;
 
   readonly currentPath: string;

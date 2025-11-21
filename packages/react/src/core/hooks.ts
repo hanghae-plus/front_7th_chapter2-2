@@ -1,4 +1,4 @@
-import { shallowEquals, withEnqueue } from "../utils";
+import { shallowEquals } from "../utils";
 import { context } from "./context";
 import { EffectHook } from "./types";
 import { enqueueRender } from "./render";
@@ -13,11 +13,12 @@ export const cleanupUnusedHooks = () => {
       context.hooks.state.delete(path);
     }
   });
-  context.hooks.effect.forEach((effect, path) => {
+  context.hooks.effect.forEach((effects, path) => {
     if (!context.hooks.visited.has(path)) {
-      effect.forEach((effect) => {
+      effects.forEach((effect) => {
         if (effect.cleanup) {
-          effect.cleanup();
+          const cleanupFn = effect.cleanup;
+          context.hooks.unmountQueue.push(() => cleanupFn());
         }
       });
       context.hooks.effect.delete(path);
