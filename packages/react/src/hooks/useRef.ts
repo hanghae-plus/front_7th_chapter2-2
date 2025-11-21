@@ -7,7 +7,7 @@ import { useState } from "../core";
  * @param initialValue - ref 객체의 초기 .current 값
  * @returns `{ current: T }` 형태의 ref 객체
  */
-export const useRef = <T>(initialValue: T): { current: T } => {
-  const [ref] = useState<{ current: T }>(() => ({ current: initialValue }));
-  return ref;
+export const useRef = <T>(initialValue: T | null): { current: T | null } => {
+  const [ref] = useState<{ current: T | null }>(() => ({ current: initialValue }));
+  return ref as { current: T | null };
 };
