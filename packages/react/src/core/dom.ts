@@ -281,7 +281,7 @@ export const createInstance = (node: VNode, path: string): Instance => {
     const renderedNode = hookManager.runComponent(path, ComponentFunction, node.props);
 
     if (renderedNode) {
-      const childPath = createChildPath(path, node.key, 0, node.type);
+      const childPath = createChildPath(path, renderedNode.key, 0, renderedNode.type, [renderedNode]);
       const childInstance = createInstance(renderedNode, childPath);
       if (childInstance) {
         instance.children = [childInstance];
