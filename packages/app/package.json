@@ -6,9 +6,11 @@
     "pnpm": ">=10"
   },
   "type": "module",
+  "homepage": "https://ahnsummer.github.io/front-chapter2-2",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "deploy:gh-pages": "pnpm run build && gh-pages -d dist",
     "lint:fix": "eslint --fix",
     "prettier:write": "prettier --write ./src",
     "preview": "vite preview"

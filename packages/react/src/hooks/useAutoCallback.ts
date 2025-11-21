@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { AnyFunction } from "../types";
 import { useCallback } from "./useCallback";
 import { useRef } from "./useRef";
@@ -11,5 +12,15 @@ import { useRef } from "./useRef";
 export const useAutoCallback = <T extends AnyFunction>(fn: T): T => {
   // 여기를 구현하세요.
   // useRef와 useCallback을 조합하여 구현해야 합니다.
-  return fn;
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
+
+  const stableCallback = useCallback(
+    ((...args: any[]) => {
+      return fnRef.current(...args);
+    }) as T,
+    [],
+  );
+
+  return stableCallback;
 };

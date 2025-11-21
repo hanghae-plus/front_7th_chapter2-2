@@ -1,23 +1,34 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { isEmptyValue } from "../utils";
-import { VNode } from "./types";
+import { FunctionComponent, VNode } from "./types";
 import { Fragment, TEXT_ELEMENT } from "./constants";
 
 /**
  * 주어진 노드를 VNode 형식으로 정규화합니다.
  * null, undefined, boolean, 배열, 원시 타입 등을 처리하여 일관된 VNode 구조를 보장합니다.
  */
-export const normalizeNode = (node: VNode): VNode | null => {
-  // 여기를 구현하세요.
+export const normalizeNode = (node: string | number | boolean | null | VNode | undefined): VNode | null => {
+  if (isEmptyValue(node)) return null;
+
+  if (typeof node === "object" && node !== null && "type" in node) return node;
+
+  if (typeof node === "string" || typeof node === "number") return createTextElement(String(node));
+
   return null;
 };
 
 /**
  * 텍스트 노드를 위한 VNode를 생성합니다.
  */
-const createTextElement = (node: VNode): VNode => {
-  // 여기를 구현하세요.
-  return {} as VNode;
+const createTextElement = (node: string): VNode => {
+  return {
+    type: TEXT_ELEMENT,
+    key: null,
+    props: {
+      nodeValue: node,
+      children: [],
+    },
+  };
 };
 
 /**
@@ -29,7 +40,32 @@ export const createElement = (
   originProps?: Record<string, any> | null,
   ...rawChildren: any[]
 ) => {
-  // 여기를 구현하세요.
+  if (type === Fragment) {
+    const flatChildren = rawChildren.flat(Infinity);
+    const children = flatChildren.map(normalizeNode).filter((child): child is VNode => child !== null);
+    return {
+      type: Fragment,
+      key: null,
+      props: {
+        children,
+      },
+    };
+  }
+
+  const { key = null, ...restProps } = originProps || {};
+
+  const flatChildren = rawChildren.flat(Infinity);
+
+  const children = flatChildren.map(normalizeNode).filter((child): child is VNode => child !== null);
+
+  return {
+    type,
+    key: key ?? null,
+    props: {
+      ...restProps,
+      ...(children.length > 0 ? { children } : {}),
+    },
+  };
 };
 
 /**
@@ -43,6 +79,21 @@ export const createChildPath = (
   nodeType?: string | symbol | React.ComponentType,
   siblings?: VNode[],
 ): string => {
-  // 여기를 구현하세요.
-  return "";
+  if (key !== null) return `${parentPath}.k${key}`;
+
+  if (typeof nodeType === "function") {
+    const componentFunction = nodeType as FunctionComponent<any>;
+    const componentName = componentFunction.displayName || componentFunction.name || "Component";
+
+    let typeIndex = 0;
+    if (siblings) {
+      for (let i = 0; i < index; i++) {
+        if (siblings[i]?.type === nodeType) typeIndex++;
+      }
+    }
+
+    return `${parentPath}.c${componentName}_${typeIndex}`;
+  }
+
+  return `${parentPath}.i${index}`;
 };

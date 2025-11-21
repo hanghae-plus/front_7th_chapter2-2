@@ -10,6 +10,7 @@ const close = () => {
 export const PageWrapper = ({ headerLeft, children }) => {
   const cart = cartStore.getState();
   const { cartModal, toast } = uiStore.getState();
+
   const cartSize = cart.items.length;
 
   const cartCount = useMemo(

@@ -430,6 +430,7 @@ describe("Chapter 2-2 기본과제: MiniReact", () => {
       setup(<div style={{ backgroundColor: "red", display: "flex" }}>styled</div>, container);
 
       const div = container.firstElementChild as HTMLElement;
+
       expect(div).not.toBeNull();
       expect(div?.style.backgroundColor).toBe("red");
       expect(div?.style.display).toBe("flex");
