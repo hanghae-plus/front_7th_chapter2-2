@@ -13,8 +13,9 @@ export const context: Context = {
     node: null,
     instance: null,
     reset({ container, node }) {
-      // 여기를 구현하세요.
-      // container, node, instance를 전달받은 값으로 초기화합니다.
+      context.root.container = container;
+      context.root.node = node;
+      context.root.instance = null;
     },
   },
 
@@ -32,36 +33,40 @@ export const context: Context = {
      * 모든 훅 관련 상태를 초기화합니다.
      */
     clear() {
-      // 여기를 구현하세요.
-      // state, cursor, visited, componentStack을 모두 비웁니다.
+      context.hooks.state.clear();
+      context.hooks.cursor.clear();
+      context.hooks.visited.clear();
+      context.hooks.componentStack = [];
     },
 
     /**
      * 현재 실행 중인 컴포넌트의 고유 경로를 반환합니다.
      */
     get currentPath() {
-      // 여기를 구현하세요.
-      // componentStack의 마지막 요소를 반환해야 합니다.
-      // 스택이 비어있으면 '훅은 컴포넌트 내부에서만 호출되어야 한다'는 에러를 발생시켜야 합니다.
-      return "";
+      const stack = context.hooks.componentStack;
+      if (stack.length === 0) {
+        throw new Error("Hooks can only be called inside a component");
+      }
+      return stack[stack.length - 1];
     },
 
     /**
      * 현재 컴포넌트에서 다음에 실행될 훅의 인덱스(커서)를 반환합니다.
      */
     get currentCursor() {
-      // 여기를 구현하세요.
-      // cursor Map에서 현재 경로의 커서를 가져옵니다. 없으면 0을 반환합니다.
-      return 0;
+      const path = context.hooks.currentPath;
+      return context.hooks.cursor.get(path) || 0;
     },
 
     /**
      * 현재 컴포넌트의 훅 상태 배열을 반환합니다.
      */
     get currentHooks() {
-      // 여기를 구현하세요.
-      // state Map에서 현재 경로의 훅 배열을 가져옵니다. 없으면 빈 배열을 반환합니다.
-      return [];
+      const path = context.hooks.currentPath;
+      if (!context.hooks.state.has(path)) {
+        context.hooks.state.set(path, []);
+      }
+      return context.hooks.state.get(path)!;
     },
   },
 

@@ -6,6 +6,6 @@
  * @returns 렌더링되지 않아야 하면 true, 그렇지 않으면 false
  */
 export const isEmptyValue = (value: unknown): boolean => {
-  // 여기를 구현하세요.
-  return false;
+  // null, undefined, boolean 값들은 렌더링하지 않음
+  return value == null || typeof value === "boolean";
 };
