@@ -40,7 +40,7 @@ export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((
   const setState = (nextValue: T | ((prev: T) => T)) => {
     const currentHooks = context.hooks.state.get(path) ?? [];
     const prevState = currentHooks[cursor];
-    const newState = typeof nextValue === "function" ? nextValue(state) : nextValue;
+    const newState = typeof nextValue === "function" ? nextValue(prevState) : nextValue;
 
     if (shallowEquals(newState, prevState)) return;
     currentHooks[cursor] = newState;
@@ -78,7 +78,7 @@ export const useEffect = (effect: () => (() => void) | void, deps?: unknown[]): 
     const newEffect: EffectHook = {
       kind: HookTypes.EFFECT,
       deps: deps ?? null,
-      cleanup: prevEffect.cleanup ?? null,
+      cleanup: prevEffect?.cleanup ?? null,
       effect,
     };
 

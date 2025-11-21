@@ -130,7 +130,7 @@ export const updateDomProps = (
   Object.keys(prevProps).forEach((key) => {
     if (key === "children") return;
 
-    if (!nextProps[key]) {
+    if (!(key in nextProps)) {
       if (key === "className") {
         dom.className = "";
       } else if (key.startsWith("on")) {
