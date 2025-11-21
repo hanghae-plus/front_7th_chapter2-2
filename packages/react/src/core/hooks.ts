@@ -19,34 +19,36 @@ export const cleanupUnusedHooks = () => {
 export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((prev: T) => T)) => void] => {
   // 여기를 구현하세요.
   // 1. 현재 컴포넌트의 훅 커서와 상태 배열을 가져옵니다.
-  const currentPath = context.hooks.currentPath;
-  const currentCursor = context.hooks.currentCursor;
-  const currentHooks = context.hooks.currentHooks;
+  const path = context.hooks.currentPath;
+  const cursor = context.hooks.currentCursor;
+  const hooks = context.hooks.currentHooks;
 
   // 2. 첫 렌더링이라면 초기값으로 상태를 설정합니다.
   let state: T;
 
-  if (currentCursor >= currentHooks.length) {
+  if (cursor >= hooks.length) {
     state = typeof initialValue == "function" ? initialValue() : initialValue;
-    currentHooks[currentCursor] = state;
-    context.hooks.state.set(currentPath, currentHooks);
+    hooks[cursor] = state;
+    context.hooks.state.set(path, hooks);
   } else {
-    state = currentHooks[currentCursor];
+    state = hooks[cursor];
   }
 
   // 3. 상태 변경 함수(setter)를 생성합니다.
   //    - 새 값이 이전 값과 같으면(Object.is) 재렌더링을 건너뜁니다.
   //    - 값이 다르면 상태를 업데이트하고 재렌더링을 예약(enqueueRender)합니다.
   const setState = (nextValue: T | ((prev: T) => T)) => {
+    const currentHooks = context.hooks.state.get(path) ?? [];
+    const prevState = currentHooks[cursor];
     const newState = typeof nextValue == "function" ? nextValue(state) : nextValue;
 
-    if (shallowEquals(newState, state)) return;
-    currentHooks[currentCursor] = newState;
-    context.hooks.state.set(currentPath, currentHooks);
+    if (shallowEquals(newState, prevState)) return;
+    currentHooks[cursor] = newState;
+    context.hooks.state.set(path, currentHooks);
     enqueueRender(); // TODO: implement enqueueRender
   };
 
-  hookManager.increaseCursor(currentPath);
+  hookManager.increaseCursor(path);
   // 4. 훅 커서를 증가시키고 [상태, setter]를 반환합니다.
   return [state, setState];
 };
@@ -75,8 +77,8 @@ export const useEffect = (effect: () => (() => void) | void, deps?: unknown[]): 
   if (shouldRunEffect) {
     const newEffect: EffectHook = {
       kind: HookTypes.EFFECT,
-      deps: deps || null,
-      cleanup: effect() || null,
+      deps: deps ?? null,
+      cleanup: prevEffect.cleanup ?? null,
       effect,
     };
 

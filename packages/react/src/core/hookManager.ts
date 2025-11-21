@@ -8,6 +8,7 @@ export const hookManager = {
   ) {
     context.hooks.componentStack.push(path);
     context.hooks.cursor.set(path, 0);
+    context.hooks.effectCursor.set(path, 0);
 
     try {
       return componentFunction(props);

@@ -300,7 +300,7 @@ export const createInstance = (node: VNode, path: string): Instance => {
     node,
     children: [],
     key: node.key ?? null,
-    path: "",
+    path,
   };
 
   node.props.children?.forEach((child, index) => {

@@ -39,10 +39,9 @@ export const context: Context = {
     clear() {
       // 여기를 구현하세요.
       // state, cursor, visited, componentStack을 모두 비웁니다.
-      this.state.clear();
       this.cursor.clear();
+      this.effectCursor.clear();
       this.visited.clear();
-      this.componentStack.length = 0;
     },
 
     /**
@@ -66,20 +65,12 @@ export const context: Context = {
       // 여기를 구현하세요.
       // cursor Map에서 현재 경로의 커서를 가져옵니다. 없으면 0을 반환합니다.
       const currentPath = this.currentPath;
-      const currentCursor = this.cursor.get(currentPath);
-      if (!currentCursor) {
-        return 0;
-      }
-      return currentCursor;
+      return this.cursor.get(currentPath) ?? 0;
     },
 
     get currentEffectCursor() {
       const currentPath = this.currentPath;
-      const currentEffectCursor = this.effectCursor.get(currentPath);
-      if (!currentEffectCursor) {
-        return 0;
-      }
-      return currentEffectCursor;
+      return this.effectCursor.get(currentPath) ?? 0;
     },
 
     /**
