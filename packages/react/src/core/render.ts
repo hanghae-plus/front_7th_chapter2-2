@@ -3,7 +3,8 @@ import { getDomNodes, insertInstance } from "./dom";
 import { createChildPath } from "./elements";
 import { reconcile } from "./reconciler";
 import { cleanupUnusedHooks } from "./hooks";
-import { withEnqueue } from "../utils";
+import { enqueue, withEnqueue } from "../utils";
+import { EffectHook } from "./types";
 
 const ROOT_PATH = "root";
 
@@ -27,9 +28,32 @@ export const render = (): void => {
 
   // 3. 사용되지 않은 훅들을 정리(cleanupUnusedHooks)합니다.
   cleanupUnusedHooks();
+
+  // 4. 이펙트를 실행
+  enqueue(executeEffects);
 };
 
 /**
  * `render` 함수를 마이크로태스크 큐에 추가하여 중복 실행을 방지합니다.
  */
 export const enqueueRender = withEnqueue(render);
+
+const executeEffects = () => {
+  const effectQueue = context.effects.queue;
+
+  const effectQueueToExecute: EffectHook[] = [];
+
+  for (const { path, cursor } of effectQueue) {
+    const allEffects = context.hooks.effect.get(path) ?? [];
+    if (allEffects && allEffects[cursor]) effectQueueToExecute.push(allEffects[cursor]);
+  }
+
+  for (const effect of effectQueueToExecute) {
+    if (effect.cleanup) effect.cleanup();
+
+    const newCleanup = effect.effect();
+    if (newCleanup) effect.cleanup = newCleanup;
+  }
+
+  context.effects.queue = [];
+};

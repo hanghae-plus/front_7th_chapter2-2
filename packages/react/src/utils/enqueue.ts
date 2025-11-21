@@ -6,6 +6,7 @@ import type { AnyFunction } from "../types";
  */
 export const enqueue = (callback: () => void) => {
   // 여기를 구현하세요.
+  queueMicrotask(callback);
 };
 
 /**
