@@ -98,7 +98,7 @@ export const reconcile = (
       return instance;
     } else if (instance.kind === NodeTypes.HOST) {
       instance.children = reconcileChildren(
-        parentDom,
+        instance.dom as HTMLElement,
         instance.children as Instance[],
         node.props.children ?? [],
         path,
