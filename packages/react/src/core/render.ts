@@ -22,9 +22,10 @@ export const render = (): void => {
 
   context.root.instance = newInstance;
 
-  if (!oldInstance) {
-    insertInstance(context.root.container as HTMLElement, newInstance);
-  }
+  // if (!oldInstance) {
+  //   insertInstance(context.root.container as HTMLElement, newInstance);
+  // }
+  context.domEffects.commit();
 
   // 3. 사용되지 않은 훅들을 정리(cleanupUnusedHooks)합니다.
   cleanupUnusedHooks();

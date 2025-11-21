@@ -71,7 +71,7 @@ export interface DomEffectsContext {
 
 export type DomEffect =
   | { type: "INSERT"; instance: Instance; parentDOM: HTMLElement; anchor?: Node | null }
-  | { type: "REMOVE"; instance: Instance; parentDOM: HTMLElement }
+  | { type: "REMOVE"; instance: Instance | null; parentDOM: HTMLElement }
   | { type: "UPDATE_PROPS"; dom: HTMLElement; prevProps: Props; nextProps: Props }
   | { type: "UPDATE_TEXT"; dom: Text; prevText: string; nextText: string };
 

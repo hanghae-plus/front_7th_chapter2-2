@@ -32,20 +32,27 @@ export const reconcile = (
   // 여기를 구현하세요.
   // 1. 새 노드가 null이면 기존 인스턴스를 제거합니다. (unmount)
   if (node === null) {
-    removeInstance(parentDom, instance);
+    // removeInstance(parentDom, instance);
+    context.domEffects.push({ type: "REMOVE", instance: instance, parentDOM: parentDom });
     return null;
   }
   // 2. 기존 인스턴스가 없으면 새 노드를 마운트합니다. (mount)
   if (instance === null) {
-    return createInstance(node, path);
+    const newInstance = createInstance(node, path);
+    context.domEffects.push({ type: "INSERT", instance: newInstance, parentDOM: parentDom });
+    return newInstance;
   }
   // 3. 타입이나 키가 다르면 기존 인스턴스를 제거하고 새로 마운트합니다.
   if (instance.node.type !== node.type || instance.key !== node.key) {
     instance.node = node;
     const _path = createChildPath(path, node.key, 0, node.type);
     instance.path = _path;
-    removeInstance(parentDom, instance);
-    return createInstance(node, _path);
+    // removeInstance(parentDom, instance);
+    context.domEffects.push({ type: "REMOVE", instance: instance, parentDOM: parentDom });
+    const newInstance = createInstance(node, _path);
+    context.domEffects.push({ type: "INSERT", instance: newInstance, parentDOM: parentDom });
+    // insertInstance(parentDom, newInst);
+    return newInstance;
   }
   // 4. 타입과 키가 같으면 인스턴스를 업데이트합니다. (update)
   //    - DOM 요소: updateDomProps로 속성 업데이트 후 자식 재조정
@@ -58,10 +65,22 @@ export const reconcile = (
       const textNode = instance.dom as Text;
       const newNodeValue = (node.props as { nodeValue: string }).nodeValue;
       if (textNode.nodeValue !== newNodeValue) {
-        textNode.nodeValue = newNodeValue;
+        // textNode.nodeValue = newNodeValue;
+        context.domEffects.push({
+          type: "UPDATE_TEXT",
+          dom: textNode,
+          prevText: textNode.nodeValue ?? "",
+          nextText: newNodeValue,
+        });
       }
     } else if (instance.kind === NodeTypes.HOST && instance.dom) {
-      updateDomProps(instance.dom as HTMLElement, prevProps, node.props);
+      // updateDomProps(instance.dom as HTMLElement, prevProps, node.props);
+      context.domEffects.push({
+        type: "UPDATE_PROPS",
+        dom: instance.dom as HTMLElement,
+        prevProps: prevProps,
+        nextProps: node.props,
+      });
     }
 
     if (instance.kind === NodeTypes.COMPONENT) {
@@ -83,7 +102,7 @@ export const reconcile = (
         (node.props.children
           ?.map((child, index) => {
             const childPath = createChildPath(path, child.key, index, child.type, node.props.children);
-            return reconcile(parentDom, instance.children[index], child, childPath);
+            return reconcile(parentDom, instance.children[index] || null, child, childPath);
           })
           .filter((child) => child !== null) as Instance[]) ?? [];
       return instance;
@@ -92,7 +111,7 @@ export const reconcile = (
         (node.props.children
           ?.map((child, index) => {
             const childPath = createChildPath(path, child.key, index, child.type, node.props.children);
-            return reconcile(instance.dom as HTMLElement, instance.children[index], child, childPath);
+            return reconcile(instance.dom as HTMLElement, instance.children[index] || null, child, childPath);
           })
           .filter((child) => child !== null) as Instance[]) ?? [];
     }
