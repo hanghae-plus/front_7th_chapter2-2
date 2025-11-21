@@ -69,6 +69,7 @@ export const reconcile = (
           nextText: newNodeValue,
         });
       }
+      return instance;
     } else if (instance.kind === NodeTypes.HOST && instance.dom) {
       context.domEffects.push({
         type: "UPDATE_PROPS",
@@ -138,7 +139,18 @@ const reconcileChildren = (
   const newChildren = newVNodes
     .map((node, index) => {
       const childPath = createChildPath(parentPath, node.key, index, node.type, newVNodes);
-      const oldChild = (node.key ? oldChildrenMap.get(node.key) : oldChildren[index]) ?? null;
+      let oldChild: Instance | null = null;
+
+      if (node.key) {
+        oldChild = oldChildrenMap.get(node.key) ?? null;
+      } else {
+        const candidateChild = oldChildren[index];
+        if (candidateChild && candidateChild.node.type === node.type) {
+          oldChild = candidateChild;
+        } else {
+          oldChild = oldChildren.find((child) => !usedOldChildren.has(child) && child.node.type === node.type) ?? null;
+        }
+      }
 
       if (oldChild) {
         usedOldChildren.add(oldChild);

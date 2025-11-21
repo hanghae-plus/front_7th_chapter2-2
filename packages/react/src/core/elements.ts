@@ -96,7 +96,14 @@ export const createChildPath = (
   if (nodeType && siblings) {
     const sameTypeIndex = siblings.slice(0, index).filter((s) => s.type === nodeType).length;
 
-    const typeName = typeof nodeType === "string" ? nodeType : (nodeType as React.ComponentType).name || "Component";
+    let typeName: string;
+    if (typeof nodeType === "string") {
+      typeName = nodeType;
+    } else if (typeof nodeType === "symbol") {
+      typeName = nodeType.description || "Symbol";
+    } else {
+      typeName = (nodeType as React.ComponentType).name || "Component";
+    }
 
     return `${parentPath}.${typeName}:${sameTypeIndex}`;
   }
