@@ -304,7 +304,7 @@ export const createInstance = (node: VNode, path: string): Instance => {
   };
 
   node.props.children?.forEach((child, index) => {
-    const childPath = createChildPath(path, node.key, index, node.type, node.props.children);
+    const childPath = createChildPath(path, child.key, index, child.type, node.props.children);
     const childInstance = createInstance(child, childPath);
     if (childInstance) {
       instance.children.push(childInstance);
