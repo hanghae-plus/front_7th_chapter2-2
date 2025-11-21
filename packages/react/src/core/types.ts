@@ -62,10 +62,24 @@ export interface EffectsContext {
   queue: Array<{ path: string; cursor: number; effect: EffectHook }>;
 }
 
+export interface DomEffectsContext {
+  queue: Array<DomEffect>;
+  push(domEffect: DomEffect): void;
+  clear(): void;
+  commit(): void;
+}
+
+export type DomEffect =
+  | { type: "INSERT"; instance: Instance; parentDOM: HTMLElement; anchor?: Node | null }
+  | { type: "REMOVE"; instance: Instance; parentDOM: HTMLElement }
+  | { type: "UPDATE_PROPS"; dom: HTMLElement; prevProps: Props; nextProps: Props }
+  | { type: "UPDATE_TEXT"; dom: Text; prevText: string; nextText: string };
+
 export interface Context {
   root: RootContext;
   hooks: HooksContext;
   effects: EffectsContext;
+  domEffects: DomEffectsContext;
 }
 
 declare global {

@@ -1,4 +1,5 @@
-import { Context } from "./types";
+import { Context, DomEffect } from "./types";
+import { insertInstance, removeInstance, updateDomProps } from "./dom";
 
 /**
  * Mini-React의 전역 컨텍스트입니다.
@@ -102,5 +103,35 @@ export const context: Context = {
    */
   effects: {
     queue: [],
+  },
+
+  // DOM Effect Queue
+  domEffects: {
+    queue: [],
+    push(domEffect: DomEffect) {
+      this.queue.push(domEffect);
+    },
+    clear() {
+      this.queue = [];
+    },
+    commit() {
+      for (const domEffect of this.queue) {
+        switch (domEffect.type) {
+          case "INSERT":
+            insertInstance(domEffect.parentDOM, domEffect.instance);
+            break;
+          case "REMOVE":
+            removeInstance(domEffect.parentDOM, domEffect.instance);
+            break;
+          case "UPDATE_PROPS":
+            updateDomProps(domEffect.dom, domEffect.prevProps, domEffect.nextProps);
+            break;
+          case "UPDATE_TEXT":
+            domEffect.dom.nodeValue = domEffect.nextText;
+            break;
+        }
+      }
+      this.clear();
+    },
   },
 };
