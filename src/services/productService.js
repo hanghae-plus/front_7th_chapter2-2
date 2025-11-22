@@ -175,7 +175,9 @@ export const loadRelatedProducts = async (category2, excludeProductId) => {
     const response = await getProducts(params);
 
     // 현재 상품 제외
-    const relatedProducts = response.products.filter((product) => product.productId !== excludeProductId);
+    const relatedProducts = response.products.filter(
+      (product) => product.productId !== excludeProductId,
+    );
 
     productStore.dispatch({
       type: PRODUCT_ACTIONS.SET_RELATED_PRODUCTS,

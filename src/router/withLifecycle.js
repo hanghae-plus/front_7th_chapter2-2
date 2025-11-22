@@ -92,7 +92,12 @@ export const withLifecycle = ({ onMount, onUnmount, watches } = {}, page) => {
         const newDeps = getDeps();
 
         if (depsChanged(newDeps, lifecycle.deps[index])) {
-          console.log(`📊 의존성 변경 감지 (${page.name}):`, lifecycle.deps[index], "→", newDeps);
+          console.log(
+            `📊 의존성 변경 감지 (${page.name}):`,
+            lifecycle.deps[index],
+            "→",
+            newDeps,
+          );
           callback();
         }
 
