@@ -21,11 +21,12 @@ export interface Instance {
   children: (Instance | null)[];
   key: string | null;
   path: string;
+  memoizedProps?: Record<string, unknown> | null;
 }
 
 export interface EffectHook {
   kind: HookType["EFFECT"];
-  deps: unknown[] | null;
+  deps: unknown[] | null | undefined;
   cleanup: (() => void) | null;
   effect: () => (() => void) | void;
 }

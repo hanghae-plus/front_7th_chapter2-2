@@ -12,17 +12,16 @@ const useForceUpdate = () => {
   const [, setTick] = useState(0);
   return () => setTick((tick) => tick + 1);
 };
-
 export function App() {
   const forceUpdate = useForceUpdate();
   const PageComponent = router.target;
 
   useEffect(() => {
-    // 각 Store의 변화를 감지하여 자동 렌더링
     productStore.subscribe(forceUpdate);
     cartStore.subscribe(forceUpdate);
     uiStore.subscribe(forceUpdate);
     router.subscribe(forceUpdate);
+    forceUpdate();
   }, []);
 
   return <PageComponent />;
