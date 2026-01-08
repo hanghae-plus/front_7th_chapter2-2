@@ -1,13 +1,72 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { context } from "./context";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { NodeType, NodeTypes } from "./constants";
 import { Instance } from "./types";
+import { addEventHandler, removeEventHandler } from "./events";
 
 /**
  * DOM 요소에 속성(props)을 설정합니다.
  * 이벤트 핸들러, 스타일, className 등 다양한 속성을 처리해야 합니다.
+ *
+ * @param dom - 속성을 설정할 DOM 요소
+ * @param props - 설정할 속성 객체 (children은 제외)
  */
 export const setDomProps = (dom: HTMLElement, props: Record<string, any>): void => {
-  // 여기를 구현하세요.
+  // 디버깅 모드: setDomProps 호출 로깅
+  const isDebugMode =
+    typeof window !== "undefined" &&
+    ((window as any).__REACT_DEBUG_EVENTS__ || localStorage.getItem("__REACT_DEBUG_EVENTS__") === "true");
+
+  if (isDebugMode) {
+    console.log("[DOM] setDomProps called", {
+      dom,
+      domId: dom.id || dom.className || "no-id",
+      domTag: dom.tagName,
+      propsKeys: Object.keys(props),
+      hasOnKeyDown: "onKeyDown" in props || "onkeydown" in props,
+      hasOnChange: "onChange" in props || "onchange" in props,
+      hasOnClick: "onClick" in props || "onclick" in props,
+    });
+  }
+
+  // children은 별도로 reconcile에서 처리하므로 제외
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { children, ...domProps } = props;
+
+  // 각 속성을 DOM에 설정
+  Object.keys(domProps).forEach((key) => {
+    const value = domProps[key];
+
+    // className은 DOM의 className 프로퍼티에 직접 설정
+    if (key === "className") {
+      dom.className = value || "";
+      return;
+    }
+    if (key === "style") {
+      Object.assign(dom.style, value);
+      return;
+    }
+
+    // 이벤트 핸들러 처리 (onClick, onChange 등)
+    // React는 'on'으로 시작하는 prop을 이벤트 핸들러로 인식합니다.
+    if (key.startsWith("on") && typeof value === "function") {
+      // 이벤트 이름을 소문자로 변환 (onClick -> click)
+      const eventName = key.slice(2).toLowerCase();
+      addEventHandler(dom, eventName, value);
+      return;
+    }
+
+    // 일반 HTML 속성은 DOM 프로퍼티에 설정
+    // 예: id, type, placeholder, value, maxLength, required 등
+    if (key in dom) {
+      // DOM에 직접 존재하는 프로퍼티인 경우
+      (dom as any)[key] = value;
+    } else {
+      // DOM 프로퍼티가 아닌 경우 attribute로 설정
+      dom.setAttribute(key, value);
+    }
+  });
 };
 
 /**
@@ -19,7 +78,134 @@ export const updateDomProps = (
   prevProps: Record<string, any> = {},
   nextProps: Record<string, any> = {},
 ): void => {
-  // 여기를 구현하세요.
+  // 디버깅 모드: updateDomProps 호출 로깅
+  const isDebugMode =
+    typeof window !== "undefined" &&
+    ((window as any).__REACT_DEBUG_EVENTS__ || localStorage.getItem("__REACT_DEBUG_EVENTS__") === "true");
+
+  if (isDebugMode) {
+    console.log("[DOM] updateDomProps called", {
+      dom,
+      domId: dom.id || dom.className || "no-id",
+      domTag: dom.tagName,
+      prevPropsKeys: Object.keys(prevProps),
+      nextPropsKeys: Object.keys(nextProps),
+      hasOnKeyDown: "onKeyDown" in nextProps || "onkeydown" in nextProps,
+      hasOnChange: "onChange" in nextProps || "onchange" in nextProps,
+      hasOnClick: "onClick" in nextProps || "onclick" in nextProps,
+    });
+  }
+
+  // children은 별도로 reconcile에서 처리하므로 제외
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { children: prevChildren, ...prevDomProps } = prevProps;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { children: nextChildren, ...nextDomProps } = nextProps;
+
+  // 모든 이전 props의 키를 순회하여 제거된 속성 처리
+  Object.keys(prevDomProps).forEach((key) => {
+    // 이벤트 핸들러 제거
+    if (key.startsWith("on") && typeof prevDomProps[key] === "function") {
+      const eventName = key.slice(2).toLowerCase();
+      removeEventHandler(dom, eventName);
+      return;
+    }
+
+    // className 제거
+    if (key === "className") {
+      if (!(key in nextDomProps)) {
+        dom.className = "";
+      }
+      return;
+    }
+
+    // style 제거
+    if (key === "style") {
+      if (!(key in nextDomProps)) {
+        dom.style.cssText = "";
+      }
+      return;
+    }
+
+    // 일반 속성 제거
+    if (!(key in nextDomProps)) {
+      if (key in dom) {
+        (dom as any)[key] = "";
+      } else {
+        dom.removeAttribute(key);
+      }
+    }
+  });
+
+  // 새로운 props의 키를 순회하여 추가/변경된 속성 처리
+  Object.keys(nextDomProps).forEach((key) => {
+    const prevValue = prevDomProps[key];
+    const nextValue = nextDomProps[key];
+
+    // 이벤트 핸들러는 함수 참조가 같아도 항상 재등록해야 함
+    // (이벤트 시스템에서 핸들러를 업데이트할 수 있도록)
+    if (key.startsWith("on") && typeof nextValue === "function") {
+      const eventName = key.slice(2).toLowerCase();
+      // 디버깅 모드: 이벤트 핸들러 업데이트 로깅
+      const isDebugMode =
+        typeof window !== "undefined" &&
+        ((window as any).__REACT_DEBUG_EVENTS__ || localStorage.getItem("__REACT_DEBUG_EVENTS__") === "true");
+
+      if (isDebugMode) {
+        console.log("[DOM] updateDomProps: registering event handler", {
+          dom,
+          domId: dom.id || dom.className || "no-id",
+          prop: key,
+          eventName,
+          prevValue: prevValue,
+          nextValue: typeof nextValue === "function",
+          isSameReference: Object.is(prevValue, nextValue),
+        });
+      }
+      // 이전 핸들러가 있으면 제거
+      if (prevValue && typeof prevValue === "function") {
+        removeEventHandler(dom, eventName);
+      }
+      // 새 핸들러 등록
+      addEventHandler(dom, eventName, nextValue);
+      return;
+    }
+
+    // 값이 같으면 스킵 (Object.is로 비교)
+    // 이벤트 핸들러는 위에서 이미 처리했으므로 여기서는 스킵
+    if (Object.is(prevValue, nextValue)) {
+      return;
+    }
+
+    // className 업데이트
+    if (key === "className") {
+      dom.className = nextValue || "";
+      return;
+    }
+
+    // style 업데이트
+    if (key === "style") {
+      if (typeof nextValue === "object" && nextValue !== null) {
+        Object.assign(dom.style, nextValue);
+      } else {
+        dom.style.cssText = nextValue || "";
+      }
+      return;
+    }
+
+    // 일반 HTML 속성 업데이트
+    if (key in dom) {
+      // DOM에 직접 존재하는 프로퍼티인 경우
+      (dom as any)[key] = nextValue;
+    } else {
+      // DOM 프로퍼티가 아닌 경우 attribute로 설정
+      if (nextValue == null) {
+        dom.removeAttribute(key);
+      } else {
+        dom.setAttribute(key, nextValue);
+      }
+    }
+  });
 };
 
 /**
@@ -27,14 +213,32 @@ export const updateDomProps = (
  * Fragment나 컴포넌트 인스턴스는 여러 개의 DOM 노드를 가질 수 있습니다.
  */
 export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] => {
-  // 여기를 구현하세요.
-  return [];
+  if (!instance) return [];
+
+  // DOM 노드가 있으면 반환
+  if (instance.dom) return [instance.dom];
+
+  // children이 없으면 빈 배열 반환
+  if (!instance.children || instance.children.length === 0) return [];
+
+  // children이 있으면 재귀적으로 DOM 수집
+  const nodes: (HTMLElement | Text)[] = [];
+  for (const child of instance.children) {
+    if (child) {
+      nodes.push(...getDomNodes(child));
+    }
+  }
+
+  return nodes;
 };
 
 /**
  * 주어진 인스턴스에서 첫 번째 실제 DOM 노드를 찾습니다.
  */
-export const getFirstDom = (instance: Instance | null): HTMLElement | Text | null => {
+export const getFirstDom = (
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  instance: Instance | null,
+): HTMLElement | Text | null => {
   // 여기를 구현하세요.
   return null;
 };
@@ -43,25 +247,94 @@ export const getFirstDom = (instance: Instance | null): HTMLElement | Text | nul
  * 자식 인스턴스들로부터 첫 번째 실제 DOM 노드를 찾습니다.
  */
 export const getFirstDomFromChildren = (children: (Instance | null)[]): HTMLElement | Text | null => {
-  // 여기를 구현하세요.
+  // 자식 인스턴스들을 순회하면서 첫 번째 DOM 노드를 찾습니다.
+  for (const child of children) {
+    if (!child) continue;
+
+    // 자식 인스턴스에 직접 DOM이 있으면 반환
+    if (child.dom) {
+      return child.dom;
+    }
+
+    // 자식 인스턴스에 DOM이 없으면 (Fragment나 컴포넌트인 경우) 재귀적으로 찾기
+    if (child.children && child.children.length > 0) {
+      const found = getFirstDomFromChildren(child.children);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
   return null;
 };
 
 /**
  * 인스턴스를 부모 DOM에 삽입합니다.
  * anchor 노드가 주어지면 그 앞에 삽입하여 순서를 보장합니다.
+ * @param parentDom - 부모 DOM 요소
+ * @param instance - 삽입할 인스턴스
+ * @param anchor - 삽입할 위치
  */
 export const insertInstance = (
   parentDom: HTMLElement,
   instance: Instance | null,
   anchor: HTMLElement | Text | null = null,
 ): void => {
-  // 여기를 구현하세요.
+  if (!instance) return;
+
+  // parentDom 유효성 검사
+  // 함수형 컴포넌트 재조정 시 부모 DOM 참조가 끊기는 문제를 방지합니다.
+  if (!parentDom || !(parentDom instanceof HTMLElement)) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[insertInstance] parentDom이 유효하지 않습니다.", "instance:", instance, "parentDom:", parentDom);
+    }
+    return;
+  }
+
+  // 실제 DOM 노드들 가져오기
+  const domNodes = getDomNodes(instance);
+  if (domNodes.length === 0) return;
+
+  // 부모에 삽입
+  domNodes.forEach((node) => {
+    if (anchor) {
+      parentDom.insertBefore(node, anchor);
+    } else {
+      parentDom.appendChild(node);
+    }
+  });
 };
 
 /**
  * 부모 DOM에서 인스턴스에 해당하는 모든 DOM 노드를 제거합니다.
  */
 export const removeInstance = (parentDom: HTMLElement, instance: Instance | null): void => {
-  // 여기를 구현하세요.
+  if (!instance) return;
+
+  if (instance.kind === NodeTypes.COMPONENT) {
+    context.hooks.state.delete(instance.path);
+    context.hooks.cursor.delete(instance.path);
+    context.hooks.visited.delete(instance.path);
+  }
+
+  // 자식들을 재귀적으로 제거
+  // 주의: 자식 제거 시 올바른 부모 DOM을 전달해야 함
+  if (instance.children) {
+    // instance.dom이 HTMLElement인 경우에만 자식 제거
+    if (instance.dom && instance.dom instanceof HTMLElement) {
+      instance.children.forEach((child) => {
+        removeInstance(instance.dom as HTMLElement, child);
+      });
+    } else {
+      // instance.dom이 없거나 Text 노드인 경우, parentDom을 사용
+      instance.children.forEach((child) => {
+        removeInstance(parentDom, child);
+      });
+    }
+  }
+
+  // 실제 DOM 제거
+  if (instance.dom && parentDom.contains(instance.dom)) {
+    parentDom.removeChild(instance.dom);
+  }
 };
