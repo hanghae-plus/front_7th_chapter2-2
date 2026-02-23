@@ -69,6 +69,7 @@ declare global {
   namespace React {
     interface ComponentType<P extends Props = Props> {
       (props: P): VNode | null;
+      displayName?: string;
     }
   }
 }

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NodeType, NodeTypes } from "./constants";
 import { Instance } from "./types";
 
 /**
@@ -7,7 +6,9 @@ import { Instance } from "./types";
  * 이벤트 핸들러, 스타일, className 등 다양한 속성을 처리해야 합니다.
  */
 export const setDomProps = (dom: HTMLElement, props: Record<string, any>): void => {
-  // 여기를 구현하세요.
+  for (const key in props) {
+    applyProp(dom, key, undefined, props[key]);
+  }
 };
 
 /**
@@ -19,7 +20,16 @@ export const updateDomProps = (
   prevProps: Record<string, any> = {},
   nextProps: Record<string, any> = {},
 ): void => {
-  // 여기를 구현하세요.
+  for (const key in prevProps) {
+    if (!(key in nextProps)) {
+      applyProp(dom, key, prevProps[key], undefined);
+    }
+  }
+
+  for (const key in nextProps) {
+    if (prevProps[key] === nextProps[key]) continue;
+    applyProp(dom, key, prevProps[key], nextProps[key]);
+  }
 };
 
 /**
@@ -27,15 +37,32 @@ export const updateDomProps = (
  * Fragment나 컴포넌트 인스턴스는 여러 개의 DOM 노드를 가질 수 있습니다.
  */
 export const getDomNodes = (instance: Instance | null): (HTMLElement | Text)[] => {
-  // 여기를 구현하세요.
-  return [];
+  if (!instance) return [];
+
+  if (instance.dom) {
+    return [instance.dom];
+  }
+
+  const doms: (HTMLElement | Text)[] = [];
+  for (const child of instance.children) {
+    doms.push(...getDomNodes(child));
+  }
+  return doms;
 };
 
 /**
  * 주어진 인스턴스에서 첫 번째 실제 DOM 노드를 찾습니다.
  */
 export const getFirstDom = (instance: Instance | null): HTMLElement | Text | null => {
-  // 여기를 구현하세요.
+  if (!instance) return null;
+
+  if (instance.dom) return instance.dom;
+
+  for (const child of instance.children) {
+    const found = getFirstDom(child);
+    if (found) return found;
+  }
+
   return null;
 };
 
@@ -43,7 +70,10 @@ export const getFirstDom = (instance: Instance | null): HTMLElement | Text | nul
  * 자식 인스턴스들로부터 첫 번째 실제 DOM 노드를 찾습니다.
  */
 export const getFirstDomFromChildren = (children: (Instance | null)[]): HTMLElement | Text | null => {
-  // 여기를 구현하세요.
+  for (const child of children) {
+    const dom = getFirstDom(child);
+    if (dom) return dom;
+  }
   return null;
 };
 
@@ -56,12 +86,101 @@ export const insertInstance = (
   instance: Instance | null,
   anchor: HTMLElement | Text | null = null,
 ): void => {
-  // 여기를 구현하세요.
+  if (!instance) return;
+
+  const doms = getDomNodes(instance);
+  for (const dom of doms) {
+    if (anchor) parentDom.insertBefore(dom, anchor);
+    else parentDom.appendChild(dom);
+  }
 };
 
 /**
  * 부모 DOM에서 인스턴스에 해당하는 모든 DOM 노드를 제거합니다.
  */
 export const removeInstance = (parentDom: HTMLElement, instance: Instance | null): void => {
-  // 여기를 구현하세요.
+  if (!instance) return;
+
+  const doms = getDomNodes(instance);
+  for (const dom of doms) {
+    if (dom.parentNode === parentDom) {
+      parentDom.removeChild(dom);
+    }
+  }
+};
+
+const isEventProp = (key: string): boolean => key.startsWith("on");
+
+const getEventName = (key: string): string => key.slice(2).toLowerCase();
+
+const shouldUseProperty = (dom: HTMLElement, key: string): boolean => {
+  if (key === "children" || key === "className" || key === "style") return false;
+  if (key.startsWith("data-") || key.startsWith("aria-")) return false;
+  return key in dom;
+};
+
+const resetDomProperty = (dom: HTMLElement, key: string) => {
+  if (!(key in dom)) return;
+  const current = (dom as any)[key];
+  if (typeof current === "boolean") {
+    (dom as any)[key] = false;
+  } else if (typeof current === "number") {
+    (dom as any)[key] = 0;
+  } else {
+    (dom as any)[key] = "";
+  }
+};
+
+const applyProp = (dom: HTMLElement, key: string, prev: any, next: any) => {
+  if (key === "children") return;
+
+  if (isEventProp(key)) {
+    if (prev !== next) {
+      if (typeof prev === "function") {
+        dom.removeEventListener(getEventName(key), prev);
+      }
+      if (typeof next === "function") {
+        dom.addEventListener(getEventName(key), next);
+      }
+    }
+    return;
+  }
+
+  if (key === "className") {
+    dom.className = next ?? "";
+    return;
+  }
+
+  if (key === "style") {
+    const nextStyle = typeof next === "object" && next ? next : {};
+    const prevStyle = typeof prev === "object" && prev ? prev : {};
+    const styleDecl = dom.style as unknown as Record<string, string>;
+    for (const styleName in prevStyle) {
+      if (!(styleName in nextStyle)) {
+        styleDecl[styleName] = "";
+      }
+    }
+    Object.assign(dom.style, nextStyle);
+    return;
+  }
+
+  if (next == null) {
+    if (shouldUseProperty(dom, key)) {
+      resetDomProperty(dom, key);
+    }
+    dom.removeAttribute(key);
+    return;
+  }
+
+  if (shouldUseProperty(dom, key)) {
+    (dom as any)[key] = next;
+    if (typeof next === "boolean" && next === false) {
+      dom.removeAttribute(key);
+    } else if (typeof next === "boolean" && next === true) {
+      dom.setAttribute(key, "");
+    }
+    return;
+  }
+
+  dom.setAttribute(key, typeof next === "string" ? next : String(next));
 };

@@ -11,5 +11,13 @@ import { useRef } from "./useRef";
 export const useAutoCallback = <T extends AnyFunction>(fn: T): T => {
   // 여기를 구현하세요.
   // useRef와 useCallback을 조합하여 구현해야 합니다.
-  return fn;
+  const ref = useRef(fn);
+
+  // 매 렌더링마다 최신 함수로 업데이트
+  ref.current = fn;
+
+  // 의존성 없이 안정적인 래퍼 함수 생성
+  return useCallback((...args: Parameters<T>) => {
+    return ref.current(...args);
+  }, []) as T;
 };

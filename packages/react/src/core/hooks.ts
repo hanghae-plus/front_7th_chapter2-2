@@ -8,7 +8,24 @@ import { HookTypes } from "./constants";
  * 사용되지 않는 컴포넌트의 훅 상태와 이펙트 클린업 함수를 정리합니다.
  */
 export const cleanupUnusedHooks = () => {
-  // 여기를 구현하세요.
+  const { state, cursor, visited } = context.hooks;
+
+  for (const [path, hooks] of Array.from(state.entries())) {
+    if (visited.has(path)) continue;
+
+    hooks.forEach((hook) => {
+      if (isEffectHook(hook) && hook.cleanup) {
+        hook.cleanup();
+        hook.cleanup = null;
+      }
+    });
+
+    state.delete(path);
+    cursor.delete(path);
+  }
+
+  context.effects.queue = context.effects.queue.filter(({ path }) => state.has(path));
+  visited.clear();
 };
 
 /**
@@ -17,15 +34,29 @@ export const cleanupUnusedHooks = () => {
  * @returns [현재 상태, 상태를 업데이트하는 함수]
  */
 export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((prev: T) => T)) => void] => {
-  // 여기를 구현하세요.
-  // 1. 현재 컴포넌트의 훅 커서와 상태 배열을 가져옵니다.
-  // 2. 첫 렌더링이라면 초기값으로 상태를 설정합니다.
-  // 3. 상태 변경 함수(setter)를 생성합니다.
-  //    - 새 값이 이전 값과 같으면(Object.is) 재렌더링을 건너뜁니다.
-  //    - 값이 다르면 상태를 업데이트하고 재렌더링을 예약(enqueueRender)합니다.
-  // 4. 훅 커서를 증가시키고 [상태, setter]를 반환합니다.
-  const setState = (nextValue: T | ((prev: T) => T)) => {};
-  return [initialValue as T, setState];
+  const path = context.hooks.currentPath;
+  const hookIndex = context.hooks.currentCursor;
+  const hooksForComponent = ensureHookArray(path);
+
+  if (hooksForComponent[hookIndex] === undefined) {
+    hooksForComponent[hookIndex] = typeof initialValue === "function" ? (initialValue as () => T)() : initialValue;
+  }
+
+  const setState = (nextValue: T | ((prev: T) => T)) => {
+    const targetHooks = context.hooks.state.get(path);
+    if (!targetHooks) return;
+    const prev = targetHooks[hookIndex];
+    const value = typeof nextValue === "function" ? (nextValue as (prev: T) => T)(prev) : nextValue;
+
+    if (Object.is(prev, value)) return;
+
+    targetHooks[hookIndex] = value;
+    enqueueRender();
+  };
+
+  context.hooks.cursor.set(path, hookIndex + 1);
+
+  return [hooksForComponent[hookIndex] as T, setState];
 };
 
 /**
@@ -34,9 +65,69 @@ export const useState = <T>(initialValue: T | (() => T)): [T, (nextValue: T | ((
  * @param deps - 의존성 배열. 이 값들이 변경될 때만 이펙트가 다시 실행됩니다.
  */
 export const useEffect = (effect: () => (() => void) | void, deps?: unknown[]): void => {
-  // 여기를 구현하세요.
-  // 1. 이전 훅의 의존성 배열과 현재 의존성 배열을 비교(shallowEquals)합니다.
-  // 2. 의존성이 변경되었거나 첫 렌더링일 경우, 이펙트 실행을 예약합니다.
-  // 3. 이펙트 실행 전, 이전 클린업 함수가 있다면 먼저 실행합니다.
-  // 4. 예약된 이펙트는 렌더링이 끝난 후 비동기로 실행됩니다.
+  const path = context.hooks.currentPath;
+  const hookIndex = context.hooks.currentCursor;
+  const hooksForComponent = ensureHookArray(path);
+
+  const prevHook = hooksForComponent[hookIndex] as EffectHook | undefined;
+  const normalizedDeps = deps === undefined ? null : deps;
+
+  let shouldRun = false;
+  if (normalizedDeps === null) {
+    shouldRun = true;
+  } else if (!prevHook || prevHook.deps === null) {
+    shouldRun = true;
+  } else if (!shallowEquals(prevHook.deps, normalizedDeps)) {
+    shouldRun = true;
+  }
+
+  const hook: EffectHook = {
+    kind: HookTypes.EFFECT,
+    deps: normalizedDeps,
+    cleanup: prevHook?.cleanup ?? null,
+    effect,
+  };
+
+  hooksForComponent[hookIndex] = hook;
+
+  if (shouldRun) {
+    context.effects.queue.push({ path, cursor: hookIndex });
+  }
+
+  context.hooks.cursor.set(path, hookIndex + 1);
 };
+
+const ensureHookArray = (path: string) => {
+  let hooksForComponent = context.hooks.state.get(path);
+  if (!hooksForComponent) {
+    hooksForComponent = [];
+    context.hooks.state.set(path, hooksForComponent);
+  }
+  return hooksForComponent;
+};
+
+const isEffectHook = (hook: unknown): hook is EffectHook => {
+  return Boolean(hook && typeof hook === "object" && (hook as EffectHook).kind === HookTypes.EFFECT);
+};
+
+const runPendingEffects = () => {
+  const { queue } = context.effects;
+  while (queue.length) {
+    const task = queue.shift();
+    if (!task) continue;
+    const hooksForComponent = context.hooks.state.get(task.path);
+    if (!hooksForComponent) continue;
+    const hook = hooksForComponent[task.cursor] as EffectHook | undefined;
+    if (!isEffectHook(hook)) continue;
+
+    if (hook.cleanup) {
+      hook.cleanup();
+      hook.cleanup = null;
+    }
+
+    const cleanup = hook.effect();
+    hook.cleanup = typeof cleanup === "function" ? cleanup : null;
+  }
+};
+
+export const flushEffects = withEnqueue(runPendingEffects);
